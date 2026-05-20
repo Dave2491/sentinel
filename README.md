@@ -1,414 +1,444 @@
-# Sentinel
+```md
+# sentinel
 
-Sentinel is a policy-aware treasury intelligence and execution layer for onchain capital allocation, built for the Mantle AI x RWA hackathon track.
+sentinel is a policy-aware treasury intelligence and execution layer for onchain capital allocation, built for the mantle ai x rwa hackathon track.
 
-It presents institutional treasury recommendations, validates them against deterministic policy constraints, and records execution outcomes for governance review. The product is designed around explainability, auditability, and controlled execution rather than autonomous trading.
+it helps treasury operators evaluate allocation opportunities, check them against deterministic policy constraints, execute approved actions on mantle sepolia, and preserve an audit-ready record of every recommendation and outcome.
 
-## Thesis
+sentinel is intentionally not an autonomous trading bot. the ai layer only explains deterministic policy signals in institutional language. it does not control recommendations, submit transactions, or override execution constraints.
 
-Onchain treasuries need more than yield discovery. They need capital allocation systems that can explain why an action is recommended, prove that mandate constraints were checked, and preserve a clear record of approvals, blocks, and execution state.
+## deployment proof
 
-Sentinel addresses that workflow:
+- network: mantle sepolia
+- frontend: 'https://sentinel-nine-lemon.vercel.app/'
+- mock usdc: `0x9aCf6726F02FAd9F25c3603B613D0d0783423Ae9`
+- execution guard: `0x0faB35f64B661CB2B0B6927F2fceF1B0e4b760E9`
+- strategy vault: `0x7d76927cb553C8591327D0a87cA3fC0C9A50ac71`
+- sentinel agent identity: `0x910072C6352D69cca6281231e2d3529857c09896`
+- safe strategy: `0xE8F5735A8EEAbeE56eA6c508832CeE8299164Ab7`
+- unsafe strategy: `0x63c414E01E74FF0D3304AE48352e01a368Ddcf5B`
 
-- treasury signals are computed from a deterministic model
-- recommendations are explained before execution
-- policy constraints are evaluated before transactions are submitted
-- execution outcomes are recorded in governance-grade decision logs
-- live market data informs context without destabilizing the policy engine
+### proof transactions
 
-Sentinel is not an autonomous trading bot, a retail DeFi dashboard, or an AI chatbot. It is a controlled treasury intelligence interface for policy-aware allocation decisions.
+- approved execution: `https://sepolia.mantlescan.xyz/tx/0x94caf43e95f1eef2e529de74f4dbb8a81faff1634a9818dcdb260139e5a0bacd`
+- blocked mandate: `https://sepolia.mantlescan.xyz/tx/0x3b2bab20672d6441edee43f97a31d2750f6a8b9843ef385f24ba6f05d68de3e8`
 
-## Core Features
+these transactions demonstrate both sides of sentinel’s execution model: an approved treasury allocation and a policy-blocked allocation that records the mandate failure.
 
-- Mantle Sepolia wallet connection with RainbowKit
-- StrategyVault execution flow for policy-cleared allocation requests
-- ExecutionGuard policy enforcement for approved strategy limits
-- MockUSDC treasury asset for demo liquidity and repeatable testing
-- deterministic Treasury Signal Engine
-- AI-assisted governance commentary through OpenRouter
-- explainable recommendations with confidence, posture, policy checks, and expected impact
-- live APY/TVL-style signal layer through DefiLlama public data
-- seeded fallback values for stable demo behavior
-- governance-grade decision logs with reasoning summaries and signal state
-- Mantlescan transaction links
-- mETH positioned as Mantle-native liquid staking exposure
-- responsive, institutional dark UI
+> note: if the contracts are redeployed again, replace the addresses and proof transaction links above with the latest deployment output and latest successful demo transactions.
 
-## Architecture
+## judge quickstart
+
+sentinel demonstrates a controlled treasury decision workflow on mantle sepolia.
+
+### recommended demo flow
+
+1. open the treasury dashboard.
+2. review the recommended treasury allocation.
+3. inspect the policy pre-check and risk stance.
+4. connect a wallet on mantle sepolia.
+5. mint demo mock usdc if needed.
+6. execute the policy-approved allocation.
+7. test a mandate-blocked allocation.
+8. open the decision log.
+9. inspect the audit trail, status labels, confidence score, policy result, and transaction links.
+
+### what to look for
+
+- a deterministic treasury signal engine, not random ai output
+- a clear separation between recommendation, rationale, policy validation, and execution
+- approved actions that can proceed through the execution flow
+- blocked actions that are stopped by treasury mandate constraints
+- governance-ready audit records for recommendation history
+- mantle sepolia transaction links for executed actions
+- onchain agent identity contract for sentinel
+
+## why sentinel matters
+
+most treasury dashboards show balances, yields, and positions. sentinel goes further by answering the operational question that matters before capital moves:
+
+> is this allocation policy-aligned, explainable, and safe to execute?
+
+onchain treasuries need systems that can:
+
+- evaluate allocation opportunities against treasury mandates
+- explain why a recommendation exists
+- prevent policy-violating execution
+- preserve a reviewable governance trail
+- keep ai as an explanation layer, not an unchecked capital controller
+
+sentinel demonstrates that workflow with a policy-aware dashboard, deterministic treasury logic, ai-generated rationale, mantle sepolia execution, an onchain agent identity, and an audit trail built for review.
+
+## core product thesis
+
+ai should not directly control treasury capital.
+
+instead, ai should help governance participants and treasury operators understand deterministic signals that are already constrained by policy.
+
+sentinel follows this architecture:
 
 ```text
-Frontend UI
-  React + Vite + TypeScript
-  wagmi + viem + RainbowKit
-  Tailwind + Recharts
-
-Treasury Intelligence
-  deterministic strategy scoring
-  recommendation explainability
-  AI rationale summarization
-  seeded portfolio state
-  live market signal context with fallback
-
-Onchain Execution
-  MockUSDC
-  ExecutionGuard
-  StrategyVault
-  Mantle Sepolia
-
-Audit Surface
-  decision logs
-  execution state
-  policy verdicts
-  Mantlescan links
+market + treasury data
+        ↓
+deterministic signal engine
+        ↓
+policy pre-check
+        ↓
+ai rationale layer
+        ↓
+wallet-controlled execution
+        ↓
+onchain execution record
+        ↓
+governance audit trail
 ```
 
-Sentinel has no backend service. The frontend reads seeded treasury state, fetches public market signal data client-side, and interacts directly with deployed Mantle Sepolia contracts through the connected wallet.
+this creates a safer model for ai-assisted treasury operations:
 
-## Treasury Signal Engine
+- the deterministic engine decides the signal
+- policy rules define execution boundaries
+- the ai layer explains the rationale
+- the wallet holder approves transactions
+- smart contracts enforce execution constraints
+- the audit trail records the outcome
 
-The Treasury Signal Engine derives strategy-level scores from deterministic treasury inputs:
+## main features
 
-- yield score
-- volatility score
-- liquidity score
+### treasury intelligence dashboard
+
+sentinel presents a high-level treasury console with:
+
+- treasury value and reserve posture
+- allocation breakdown
+- policy alignment status
+- confidence scoring
+- market signal context
+- recommended treasury actions
+- execution readiness indicators
+
+### deterministic policy engine
+
+recommendations are generated from deterministic treasury logic, including:
+
+- reserve posture
+- liquidity conditions
+- volatility context
+- target allocation fit
 - policy compatibility
-- treasury fit
 - confidence score
-- allocation efficiency
-- strategy health
-- treasury posture
+- execution risk status
 
-These scores are used to generate recommendation context and dashboard state. The engine is intentionally deterministic so the same treasury state produces the same recommendation rationale. This is important for governance workflows where committees and signers need reproducible reasoning, not opaque model output.
+given the same input data and policy constraints, the engine should produce the same recommendation outcome.
 
-## AI Governance Commentary
+### ai rationale layer
 
-Sentinel includes a lightweight AI rationale layer using OpenRouter's chat completions API with `openrouter/free`.
+sentinel uses a lightweight openrouter text-generation helper to produce institutional explanations for treasury recommendations.
 
-The model receives structured treasury context such as strategy name, confidence, stance, policy status, liquidity condition, reserve posture, APY context, and expected impact. It returns a short governance-oriented summary for the recommendation panel.
+the ai layer:
 
-This layer is explanation-only. It does not control recommendations, policy validation, transaction submission, strategy scoring, or treasury logic. If the OpenRouter API key is missing or the request fails, Sentinel falls back to deterministic recommendation text.
+- explains deterministic treasury signals
+- writes in formal, governance-ready language
+- avoids chatbot-style advice
+- does not control execution
+- falls back to deterministic rationale if the api is unavailable
 
-For the hackathon demo, the OpenRouter key is read from a Vite environment variable and is therefore exposed to the browser like any `VITE_*` value. A production deployment should route LLM calls through a controlled backend or edge function with rate limits and key protection.
+### onchain ai evidence hash
 
-## Policy Validation
+sentinel records an ai rationale evidence hash with execution events.
 
-Policy validation is split between the interface and the onchain execution path.
+the full text rationale remains in the frontend audit trail, while the onchain hash provides a compact verification anchor that the recommendation had associated rationale evidence at execution time.
 
-The interface explains the policy checks before the user acts. The contract layer enforces execution constraints through `ExecutionGuard`, which stores strategy approval and allocation limits. `StrategyVault` calls the guard before recording a simulated allocation.
+### onchain agent identity
 
-This separation keeps the recommendation layer informative while ensuring the execution layer remains policy-aware.
+sentinel includes a deployed agent identity contract on mantle sepolia.
 
-## Recommendation Logic
+this gives the project a verifiable onchain identity for the sentinel treasury intelligence agent, separate from the execution contracts.
 
-Recommendations are deterministic and explainable. Each recommendation includes:
+### policy-aware execution gate
 
-- why the recommendation exists
-- treasury conditions that triggered it
-- policy constraints checked
-- expected impact
-- confidence percentage
-- confidence basis
-- treasury posture
-- live or fallback market signal context
+before execution, sentinel checks whether a proposed allocation fits the treasury mandate.
 
-Live market data is used as contextual intelligence, not as uncontrolled execution authority. Policy outcomes remain stable and deterministic.
+approved recommendations can proceed through the wallet execution flow.
 
-## Live Market Signal Layer
+blocked recommendations are stopped and recorded as policy violations.
 
-Sentinel includes a lightweight read-only market signal layer using the DefiLlama public yields API.
+### mantle sepolia execution
 
-The app fetches APY and TVL-style metrics for comparable DeFi strategies and injects those values into strategy cards and recommendation context. If the API is unavailable, malformed, or returns no usable match, Sentinel falls back to seeded market values.
+sentinel integrates with mantle sepolia using:
 
-The UI labels this state clearly:
-
-- `Live signal`
-- `Loading signal`
-- `Seeded fallback`
-- `Last updated`
-
-This keeps the demo market-aware without depending on a backend service or a production data pipeline.
-
-## Governance And Audit Trail
-
-Sentinel records decision events with:
-
-- recommendation or execution title
-- execution result
-- reasoning summary
-- confidence
-- treasury posture
-- signal state at execution time
-- transaction hash when available
-- Mantle Sepolia explorer link
-
-The goal is to make treasury activity reviewable after the fact. A blocked allocation should be as explainable as an approved one.
-
-## Mantle Ecosystem Alignment
-
-Sentinel is built around Mantle Sepolia execution and Mantle ecosystem treasury context.
-
-- contracts are deployed for Mantle Sepolia testing
-- transaction links resolve to Mantlescan
-- the strategy book includes Mantle T-Bill and mETH-oriented treasury strategies
-- mETH is presented as Mantle-native liquid staking exposure for yield-bearing ETH allocation context
-- live market signals support Mantle or comparable DeFi yield metrics where available
-
-The product framing is infrastructural: Sentinel treats Mantle as the execution and ecosystem context for controlled treasury allocation.
-
-## AI x RWA Positioning
-
-Sentinel fits the AI x RWA track through policy-aware treasury intelligence rather than autonomous execution.
-
-The AI-aligned component is the explainability and signal layer: recommendations are ranked, scored, and narrated in a way that a treasury team can review. The RWA component is represented through short-duration treasury allocation modeling, simulated RWA vault exposure, policy limits, duration checks, and allocation constraints.
-
-The system is intentionally conservative. It does not execute trades autonomously, integrate real RWA issuers, or route funds into external protocols.
-
-## Smart Contracts
-
-The contract package lives in `contracts/`.
-
-### `MockUSDC`
-
-A demo ERC20 treasury asset with 6 decimals. It mints initial supply to the deployer and includes a capped public faucet mint so judge wallets can obtain test liquidity.
-
-### `ExecutionGuard`
-
-Stores strategy approval status and maximum allocation limits in basis points. It exposes validation methods used by the vault before allocation requests are recorded.
-
-### `StrategyVault`
-
-Accepts treasury asset deposits and records simulated strategy allocations after policy validation. For the hackathon testnet deployment, rebalance requests are public so judges can submit transactions from their own wallets. If a requested allocation fails policy, it emits an `AllocationBlocked` event instead of recording the allocation.
-
-No production DeFi integrations, bridges, validator mechanics, governance modules, or onchain AI systems are included.
-
-## Reference Mantle Sepolia Contracts
-
-The repository includes verification configuration for these Mantle Sepolia deployments:
-
-| Contract | Address |
-| --- | --- |
-| MockUSDC | `0x32683D42103B44e54eF3c624470C92A343837bCF` |
-| ExecutionGuard | `0xeE1F44D2a3a9d2FFa0dCbCDE16a6087DDe0f9465` |
-| StrategyVault | `0x5F49F2108338902Ae9E4eeba36AFfC1A42D9C265` |
-
-Strategy placeholder addresses are produced by the deployment script and should be copied into the frontend `.env` with the other contract addresses.
-
-## Tech Stack
-
-- React
-- Vite
-- TypeScript
-- Tailwind CSS
+- rainbowkit
 - wagmi
 - viem
-- RainbowKit
-- Recharts
-- Hardhat
-- Solidity
-- OpenZeppelin
-- Mantle Sepolia
-- DefiLlama public API
+- walletconnect
+- mantle sepolia chain configuration
 
-## Project Structure
+the demo execution flow uses smart contracts to simulate treasury allocation control.
+
+### decision log / audit trail
+
+sentinel records treasury decisions with:
+
+- recommendation title
+- timestamp
+- status: approved, pending, or blocked
+- execution result
+- policy rationale
+- confidence score
+- signal state
+- chain label
+- transaction hash where available
+
+this gives judges a clear governance review surface instead of a one-off dashboard action.
+
+## technical highlights
+
+- vite + react + typescript frontend
+- tailwind-based institutional dashboard ui
+- deterministic treasury recommendation engine
+- openrouter chat-completions helper for text rationale
+- deterministic fallback if ai generation fails
+- rainbowkit / wagmi / viem wallet integration
+- mantle sepolia execution flow
+- smart-contract policy guard
+- mock usdc demo token
+- strategy vault simulation
+- blocked execution path for unsafe allocation
+- audit trail with transaction links and policy metadata
+- live market signal layer with fallback data
+- onchain ai rationale evidence hash attached to execution events
+- onchain sentinel agent identity contract
+
+## architecture overview
 
 ```text
-sentinel/
-  src/
-    App.tsx                 # application shell, routes, dashboard, execution flow
-    contracts.ts            # frontend ABIs and env-based contract addresses
-    wallet.ts               # RainbowKit/wagmi configuration
-    data/
-      treasury.ts           # seeded treasury model and signal engine
-      marketSignals.ts      # DefiLlama live signal layer with fallback
-    assets/
-      mantle-logo.png       # Mantle ecosystem mark
+src/
+  App.tsx
+    application shell, routes, dashboard, execution flow, audit trail
+  data/
+    treasury.ts
+      seeded treasury model, recommendation data, deterministic signal engine
+    marketSignals.ts
+      live market signal layer with fallback values
+  lib/
+    aiRationale.ts
+      openrouter-powered treasury rationale helper with deterministic fallback
+  contracts.ts
+    frontend contract abis and environment-based addresses
+  wallet.ts
+    rainbowkit, wagmi, viem, and mantle sepolia wallet configuration
 
+contracts/
   contracts/
-    contracts/
-      MockUSDC.sol
-      ExecutionGuard.sol
-      StrategyVault.sol
-    scripts/
-      deploy.ts
-      verify.ts
-    test/
-      SentinelContracts.ts
+    MockUSDC.sol
+    ExecutionGuard.sol
+    StrategyVault.sol
+    SentinelAgentIdentity.sol
+  scripts/
+    deploy.ts
+    verify.ts
+  test/
+    SentinelContracts.ts
 ```
 
-## Frontend Setup
+## smart contracts
 
-Install dependencies:
+sentinel uses a small contract system for hackathon demonstration purposes.
 
-```bash
-npm install
-```
+### `MockUSDC.sol`
 
-Create a frontend environment file:
+demo usdc token used to simulate treasury balances on mantle sepolia.
+
+### `ExecutionGuard.sol`
+
+policy guard contract that validates whether an allocation is allowed before execution.
+
+### `StrategyVault.sol`
+
+demo strategy vault used to record approved treasury allocation movement and policy-blocked attempts.
+
+the vault records execution metadata including recommendation ids and ai rationale evidence hashes, giving the demo a verifiable onchain audit trail.
+
+### `SentinelAgentIdentity.sol`
+
+minimal onchain agent identity nft used to represent sentinel as a deployed treasury intelligence agent on mantle sepolia.
+
+this supports the hackathon’s agent identity direction by giving sentinel a verifiable onchain identity separate from the execution contracts.
+
+the smart contract layer is intentionally scoped for the hackathon demo. it demonstrates policy enforcement and controlled execution boundaries, not production treasury custody.
+
+## ai usage
+
+sentinel uses openrouter only for text explanation.
+
+the ai model does not:
+
+- choose the recommendation
+- approve treasury movement
+- submit transactions
+- override policy checks
+- manage private keys
+- perform autonomous trading
+
+the ai model does:
+
+- explain a deterministic treasury signal
+- produce concise institutional rationale
+- help governance reviewers understand the recommendation
+- fall back safely when unavailable
+
+## environment variables
+
+create a frontend environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Configure:
+configure the values needed for the frontend:
 
 ```bash
 VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 VITE_OPENROUTER_API_KEY=your_openrouter_api_key
-VITE_MOCK_USDC_ADDRESS=0x...
-VITE_EXECUTION_GUARD_ADDRESS=0x...
-VITE_STRATEGY_VAULT_ADDRESS=0x...
-VITE_SAFE_STRATEGY_ADDRESS=0x...
-VITE_UNSAFE_STRATEGY_ADDRESS=0x...
+
+VITE_MOCK_USDC_ADDRESS=0x9aCf6726F02FAd9F25c3603B613D0d0783423Ae9
+VITE_EXECUTION_GUARD_ADDRESS=0x0faB35f64B661CB2B0B6927F2fceF1B0e4b760E9
+VITE_STRATEGY_VAULT_ADDRESS=0x7d76927cb553C8591327D0a87cA3fC0C9A50ac71
+VITE_SAFE_STRATEGY_ADDRESS=0xE8F5735A8EEAbeE56eA6c508832CeE8299164Ab7
+VITE_UNSAFE_STRATEGY_ADDRESS=0x63c414E01E74FF0D3304AE48352e01a368Ddcf5B
 ```
 
-Run the app:
+the openrouter key is optional for the core deterministic flow. if it is missing or unavailable, sentinel uses deterministic fallback rationale.
+
+## frontend setup
+
+install dependencies:
+
+```bash
+npm install
+```
+
+start the development server:
 
 ```bash
 npm run dev
 ```
 
-Build for production:
+build for production:
 
 ```bash
 npm run build
 ```
 
-Preview the production build:
+preview the production build:
 
 ```bash
 npm run preview
 ```
 
-If contract addresses are not configured, Sentinel still runs with seeded treasury state and demo-safe signals. Wallet execution is disabled until the required Mantle Sepolia addresses are present.
+## mantle sepolia deployment
 
-For the hackathon testnet deployment, judge wallets can mint capped demo MockUSDC and submit rebalance requests directly. `ExecutionGuard` remains authoritative: it validates strategy approval and allocation limits before the vault records an executed or blocked outcome.
-
-## Contract Setup
-
-Install contract dependencies:
+from the `contracts/` directory, install dependencies:
 
 ```bash
-cd contracts
 npm install
 ```
 
-Compile:
-
-```bash
-npm run compile
-```
-
-Run tests:
-
-```bash
-npm test
-```
-
-Create a contract environment file:
+create a contracts environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Configure:
+configure the mantle sepolia deployment variables:
 
 ```bash
-MANTLE_SEPOLIA_RPC_URL=https://rpc.sepolia.mantle.xyz
-PRIVATE_KEY=your_deployer_private_key_without_0x
-MANTLESCAN_API_KEY=your_mantlescan_or_etherscan_api_key
-SENTINEL_OWNER_ADDRESS=deployer_address_used_for_constructor_args
-MOCK_USDC_ADDRESS=deployed_mock_usdc_address
-EXECUTION_GUARD_ADDRESS=deployed_execution_guard_address
-STRATEGY_VAULT_ADDRESS=deployed_strategy_vault_address
+PRIVATE_KEY=your_testnet_wallet_private_key
+MANTLE_SEPOLIA_RPC_URL=your_mantle_sepolia_rpc_url
 ```
 
-Do not commit private keys or funded deployer credentials.
-
-## Mantle Sepolia Deployment
-
-From the `contracts/` directory:
+deploy contracts:
 
 ```bash
 npm run deploy:mantle-sepolia
 ```
 
-The deployment script deploys:
+the deployment script deploys:
 
 1. `MockUSDC`
 2. `ExecutionGuard`
 3. `StrategyVault`
-4. a safe strategy placeholder address
-5. an unsafe strategy placeholder address
+4. `SentinelAgentIdentity`
+5. a safe strategy placeholder
+6. an unsafe strategy placeholder
 
-It then configures policy limits in `ExecutionGuard`:
+after deployment, copy the deployed addresses into the frontend `.env` file.
 
-- safe strategy: approved with a 40% maximum allocation
-- unsafe strategy: approved with a 10% maximum allocation
+## verification
 
-After deployment, copy the printed addresses into the root `.env` file.
-
-Redeploy the contracts after changing Solidity source. Existing `.env` addresses will continue pointing at the previous deployment until they are updated.
-
-Verify contracts on Mantlescan:
+run the frontend build:
 
 ```bash
-npm run verify:mantle-sepolia
+npm run build
 ```
 
-The verification script is configured for Mantle Sepolia using Hardhat's Etherscan-compatible verifier.
+run contract tests from the `contracts/` directory:
 
-## Screenshots
+```bash
+npm test
+```
 
-Add final screenshots here before submission.
+verify the live onchain demo evidence:
 
-### Landing Page
+- approved execution: `https://sepolia.mantlescan.xyz/tx/0x94caf43e95f1eef2e529de74f4dbb8a81faff1634a9818dcdb260139e5a0bacd`
+- blocked mandate: `https://sepolia.mantlescan.xyz/tx/0x3b2bab20672d6441edee43f97a31d2750f6a8b9843ef385f24ba6f05d68de3e8`
 
-`docs/screenshots/landing.png`
+## demo boundaries
 
-### Treasury Dashboard
-
-`docs/screenshots/dashboard.png`
-
-### Strategy Universe
-
-`docs/screenshots/strategies.png`
-
-### Recommendation Panel
-
-`docs/screenshots/recommendations.png`
-
-### Decision Log
-
-`docs/screenshots/decision-log.png`
-
-## Demo Notes
-
-Sentinel is designed to remain stable during live demos:
-
-- market signals fall back to seeded values if DefiLlama is unavailable
-- AI governance commentary falls back to deterministic text if OpenRouter is unavailable
-- recommendations are deterministic
-- seeded audit timestamps are generated relative to the current browser time
-- confirmed transactions update the session allocation view from contract events
-- policy checks are explicit
-- blocked execution paths remain available for judges to test
-- Mantlescan links appear when transactions are submitted
-- no backend process is required
-
-## Scope Boundaries
-
-Sentinel deliberately avoids:
+sentinel deliberately avoids:
 
 - autonomous trading
-- AI chat interfaces
+- ai-controlled execution
 - backend custody services
+- production yield routing
 - bridge integrations
 - validator or staking execution mechanics
-- real RWA issuer integrations
-- production yield routing
+- real rwa issuer integrations
+- production treasury management claims
 
-These boundaries are intentional. The project demonstrates how treasury intelligence, policy validation, and onchain execution controls can work together without turning recommendation logic into uncontrolled capital movement.
+these boundaries are intentional. sentinel demonstrates how treasury intelligence, policy validation, ai explanation, and onchain execution controls can work together without turning recommendation logic into uncontrolled capital movement.
 
-## License
+## hackathon positioning
 
-This repository was built for hackathon demonstration purposes. Add a formal license before production or open-source distribution.
+sentinel is best understood as:
+
+> an institutional treasury console for policy-aware onchain capital allocation.
+
+it is not a chatbot and not a trading bot.
+
+the strongest judging angle is the separation of responsibilities:
+
+- deterministic logic for treasury signals
+- policy contracts for execution boundaries
+- ai for explanation only
+- wallet approval for transaction control
+- audit logs for governance review
+
+## future extensions
+
+possible future work includes:
+
+- multi-policy treasury mandates
+- dao proposal ingestion
+- multi-chain treasury views
+- real rwa vault adapters
+- formal risk scoring modules
+- governance approval workflows
+- automated report generation
+- role-based treasury operator permissions
+- exportable audit reports
+- production-grade contract verification and monitoring
+
+## licence
+
+this repository was built for hackathon demonstration purposes. add a formal licence before production or open-source distribution.
+```
