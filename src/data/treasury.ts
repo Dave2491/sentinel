@@ -1,0 +1,483 @@
+import type { LucideIcon } from "lucide-react";
+import { Banknote, Landmark, Layers3, Waves } from "lucide-react";
+
+export type RiskLevel = "Low" | "Medium" | "High";
+export type PolicyStatus = "Compliant" | "Watch" | "Blocked";
+export type SignalState = "Constructive" | "Watch" | "Restricted";
+export type TreasuryPosture = "Defensive" | "Balanced" | "Opportunistic" | "Restricted";
+
+export type Strategy = {
+  name: string;
+  category: string;
+  allocation: number;
+  value: number;
+  apy: number;
+  risk: RiskLevel;
+  liquidity: string;
+  status: PolicyStatus;
+  note: string;
+  icon: LucideIcon;
+};
+
+export type StrategySignal = {
+  strategyName: string;
+  yieldScore: number;
+  volatilityScore: number;
+  liquidityScore: number;
+  policyCompatibility: number;
+  treasuryFit: number;
+  confidenceScore: number;
+  health: SignalState;
+  posture: TreasuryPosture;
+  allocationEfficiency: number;
+  reasoningSummary: string;
+  conditions: string[];
+  policyConstraints: string[];
+  expectedImpact: string;
+  signalState: string;
+};
+
+export type TreasurySignalEngine = {
+  strategySignals: StrategySignal[];
+  strategySignalMap: Record<string, StrategySignal>;
+  posture: TreasuryPosture;
+  confidence: number;
+  strategyHealth: SignalState;
+  allocationEfficiency: number;
+  signalState: string;
+  recommendations: RecommendationSignal[];
+};
+
+export type RecommendationSignal = {
+  id: "tBillRebalance" | "highYieldBlock";
+  from: string;
+  to: string;
+  amount: string;
+  status: "Allowed" | "Blocked";
+  postureLabel: TreasuryPosture;
+  confidence: number;
+  confidenceBasis: string;
+  why: string;
+  conditions: string[];
+  policyConstraints: string[];
+  expectedImpact: string;
+  signalState: string;
+};
+
+type MockMarketDatum = {
+  baseYield: number;
+  volatility30d: number;
+  liquidityDepth: number;
+  redemptionHours: number;
+  durationDays: number;
+  drawdownP95: number;
+  protocolMaturity: number;
+  targetAllocation: number;
+};
+
+function signalStateLabel(state: SignalState) {
+  const labels: Record<SignalState, string> = {
+    Constructive: "Healthy",
+    Watch: "Monitored",
+    Restricted: "Constrained",
+  };
+
+  return labels[state];
+}
+
+function postureLabel(posture: TreasuryPosture) {
+  const labels: Record<TreasuryPosture, string> = {
+    Defensive: "Conservative",
+    Balanced: "Neutral",
+    Opportunistic: "Yield-biased",
+    Restricted: "Constrained",
+  };
+
+  return labels[posture];
+}
+
+export const strategies: Strategy[] = [
+  {
+    name: "USDC Reserve",
+    category: "Stable reserve",
+    allocation: 45,
+    value: 5794000,
+    apy: 0.8,
+    risk: "Low",
+    liquidity: "Instant",
+    status: "Compliant",
+    note: "Core operating runway and redemption buffer.",
+    icon: Banknote,
+  },
+  {
+    name: "Mantle T-Bill Vault",
+    category: "Simulated RWA",
+    allocation: 29,
+    value: 3734000,
+    apy: 4.7,
+    risk: "Low",
+    liquidity: "T+2",
+    status: "Compliant",
+    note: "Tokenized treasury exposure with conservative duration.",
+    icon: Landmark,
+  },
+  {
+    name: "mETH Yield Vault",
+    category: "Mantle liquid staking",
+    allocation: 18,
+    value: 2317000,
+    apy: 3.9,
+    risk: "Medium",
+    liquidity: "24h",
+    status: "Watch",
+    note: "Mantle-native liquid staking allocation for yield-bearing ETH exposure, monitored for liquidity depth and ETH beta.",
+    icon: Waves,
+  },
+  {
+    name: "High Yield LP",
+    category: "Volatile DeFi",
+    allocation: 8,
+    value: 1030000,
+    apy: 14.2,
+    risk: "High",
+    liquidity: "Variable",
+    status: "Blocked",
+    note: "Capped by treasury mandate due to drawdown risk.",
+    icon: Layers3,
+  },
+];
+
+const mockMarketData: Record<string, MockMarketDatum> = {
+  "USDC Reserve": {
+    baseYield: 0.8,
+    volatility30d: 0.4,
+    liquidityDepth: 96,
+    redemptionHours: 0,
+    durationDays: 0,
+    drawdownP95: 0.2,
+    protocolMaturity: 98,
+    targetAllocation: 43,
+  },
+  "Mantle T-Bill Vault": {
+    baseYield: 4.7,
+    volatility30d: 1.1,
+    liquidityDepth: 78,
+    redemptionHours: 48,
+    durationDays: 42,
+    drawdownP95: 1.9,
+    protocolMaturity: 88,
+    targetAllocation: 33,
+  },
+  "mETH Yield Vault": {
+    baseYield: 3.9,
+    volatility30d: 8.6,
+    liquidityDepth: 72,
+    redemptionHours: 24,
+    durationDays: 1,
+    drawdownP95: 9.8,
+    protocolMaturity: 76,
+    targetAllocation: 16,
+  },
+  "High Yield LP": {
+    baseYield: 14.2,
+    volatility30d: 18.4,
+    liquidityDepth: 38,
+    redemptionHours: 96,
+    durationDays: 7,
+    drawdownP95: 24.5,
+    protocolMaturity: 54,
+    targetAllocation: 4,
+  },
+};
+
+export function deriveTreasurySignalEngine(currentStrategies: Strategy[]): TreasurySignalEngine {
+  const strategySignals = currentStrategies.map(deriveStrategySignal);
+  const strategySignalMap = strategySignals.reduce<Record<string, StrategySignal>>((signals, signal) => {
+    signals[signal.strategyName] = signal;
+    return signals;
+  }, {});
+
+  const averageConfidence = average(strategySignals.map((signal) => signal.confidenceScore));
+  const allocationEfficiency = average(strategySignals.map((signal) => signal.allocationEfficiency));
+  const highRiskAllocation = currentStrategies
+    .filter((strategy) => strategy.risk === "High")
+    .reduce((sum, strategy) => sum + strategy.allocation, 0);
+  const stableReserveAllocation = currentStrategies.find((strategy) => strategy.name === "USDC Reserve")?.allocation ?? 0;
+  const posture =
+    highRiskAllocation > 10
+      ? "Restricted"
+      : stableReserveAllocation >= 44
+        ? "Defensive"
+        : averageConfidence >= 84
+          ? "Balanced"
+          : "Opportunistic";
+  const strategyHealth = averageConfidence >= 84 ? "Constructive" : highRiskAllocation > 10 ? "Restricted" : "Watch";
+  const signalState = `${signalStateLabel(strategyHealth)} portfolio / ${postureLabel(posture)} stance / ${Math.round(allocationEfficiency)}% allocation efficiency`;
+
+  return {
+    strategySignals,
+    strategySignalMap,
+    posture,
+    confidence: Math.round(averageConfidence),
+    strategyHealth,
+    allocationEfficiency: Math.round(allocationEfficiency),
+    signalState,
+    recommendations: buildRecommendationSignals(strategySignalMap, posture),
+  };
+}
+
+function deriveStrategySignal(strategy: Strategy): StrategySignal {
+  const market = mockMarketData[strategy.name];
+  const yieldScore = clamp(Math.round((market.baseYield / 15) * 100), 5, 98);
+  const volatilityScore = clamp(Math.round(100 - market.volatility30d * 4.2 - market.drawdownP95 * 1.1), 12, 99);
+  const liquidityScore = clamp(Math.round(market.liquidityDepth - market.redemptionHours * 0.28), 18, 98);
+  const policyCompatibility = strategy.status === "Compliant" ? 94 : strategy.status === "Watch" ? 72 : 38;
+  const allocationEfficiency = clamp(Math.round(100 - Math.abs(strategy.allocation - market.targetAllocation) * 3.8), 35, 99);
+  const riskFit = strategy.risk === "Low" ? 94 : strategy.risk === "Medium" ? 76 : 48;
+  const treasuryFit = clamp(
+    Math.round(policyCompatibility * 0.34 + liquidityScore * 0.24 + volatilityScore * 0.22 + riskFit * 0.2),
+    20,
+    98,
+  );
+  const confidenceScore = clamp(
+    Math.round(
+      yieldScore * 0.16 +
+        volatilityScore * 0.2 +
+        liquidityScore * 0.18 +
+        policyCompatibility * 0.22 +
+        treasuryFit * 0.24,
+    ),
+    20,
+    98,
+  );
+  const health: SignalState =
+    strategy.status === "Blocked" || confidenceScore < 55 ? "Restricted" : confidenceScore >= 78 ? "Constructive" : "Watch";
+  const posture: TreasuryPosture =
+    strategy.status === "Blocked" ? "Restricted" : strategy.risk === "Low" ? "Defensive" : strategy.risk === "Medium" ? "Balanced" : "Opportunistic";
+
+  return {
+    strategyName: strategy.name,
+    yieldScore,
+    volatilityScore,
+    liquidityScore,
+    policyCompatibility,
+    treasuryFit,
+    confidenceScore,
+    health,
+    posture,
+    allocationEfficiency,
+    reasoningSummary: buildReasoningSummary(strategy, confidenceScore, treasuryFit, liquidityScore),
+    conditions: buildConditions(strategy, market),
+    policyConstraints: buildPolicyConstraints(strategy, market),
+    expectedImpact: buildExpectedImpact(strategy, market),
+    signalState: `${signalStateLabel(health)} signal, ${postureLabel(posture).toLowerCase()} stance, ${allocationEfficiency}% allocation efficiency`,
+  };
+}
+
+function buildRecommendationSignals(
+  signals: Record<string, StrategySignal>,
+  posture: TreasuryPosture,
+): RecommendationSignal[] {
+  const reserve = signals["USDC Reserve"];
+  const tBill = signals["Mantle T-Bill Vault"];
+  const highYield = signals["High Yield LP"];
+
+  return [
+    {
+      id: "tBillRebalance",
+      from: "USDC Reserve",
+      to: "Mantle T-Bill Vault",
+      amount: "4%",
+      status: "Allowed",
+      postureLabel: posture,
+      confidence: Math.round((reserve.confidenceScore + tBill.confidenceScore + tBill.treasuryFit) / 3),
+      confidenceBasis: "Weighted by reserve health, liquidity stability, and policy alignment",
+      why: "Reserve headroom supports a controlled move into short-duration RWA yield.",
+      conditions: [
+        "USDC reserve sits 5% above the floor",
+        "T-Bill liquidity remains inside T+2",
+        "Protocol concentration remains within the 30% cap",
+      ],
+      policyConstraints: [
+        "Reserve floor cleared",
+        "Protocol concentration cleared",
+        "RWA duration cleared",
+      ],
+      expectedImpact: "+4% productive allocation, +16 bps estimated blended yield, no mandate breach.",
+      signalState: `${signalStateLabel(tBill.health)} target, ${tBill.confidenceScore}% policy-liquidity score`,
+    },
+    {
+      id: "highYieldBlock",
+      from: "USDC Reserve",
+      to: "High Yield LP",
+      amount: "16%",
+      status: "Blocked",
+      postureLabel: "Restricted",
+      confidence: highYield.confidenceScore,
+      confidenceBasis: "Weighted by volatility, liquidity depth, and high-risk exposure",
+      why: "Yield is outweighed by volatility, weaker liquidity, and mandate pressure.",
+      conditions: [
+        "High-risk exposure would rise to 24%",
+        "30-day volatility exceeds treasury tolerance",
+        "Variable liquidity weakens runway protection",
+      ],
+      policyConstraints: [
+        "High-risk exposure cap failed",
+        "Reserve floor checked",
+        "Liquidity runway checked",
+      ],
+      expectedImpact: "Avoids a 14% mandate breach and preserves a conservative operating stance.",
+      signalState: `${signalStateLabel(highYield.health)} target, ${highYield.confidenceScore}% risk-adjusted score`,
+    },
+  ];
+}
+
+function buildReasoningSummary(strategy: Strategy, confidence: number, treasuryFit: number, liquidityScore: number) {
+  if (strategy.status === "Blocked") {
+    return "Yield is overridden by policy risk, thin liquidity, and high-risk exposure.";
+  }
+
+  if (strategy.status === "Watch") {
+    return "Useful allocation, held in band by volatility.";
+  }
+
+  return `Clears policy screens: ${confidence}% confidence, ${treasuryFit}% treasury fit, ${liquidityScore}% liquidity support.`;
+}
+
+function buildConditions(strategy: Strategy, market: MockMarketDatum) {
+  if (strategy.name === "mETH Yield Vault") {
+    return [
+      `${market.baseYield.toFixed(1)}% mETH yield input`,
+      `${market.volatility30d.toFixed(1)}% ETH-beta volatility`,
+      `${market.redemptionHours}h liquidity assumption`,
+    ];
+  }
+
+  return [
+    `${market.baseYield.toFixed(1)}% deterministic yield input`,
+    `${market.volatility30d.toFixed(1)}% 30-day volatility`,
+    `${market.redemptionHours === 0 ? "Instant" : `${market.redemptionHours}h`} redemption`,
+  ];
+}
+
+function buildPolicyConstraints(strategy: Strategy, market: MockMarketDatum) {
+  const constraints = ["Reserve floor checked", "Protocol concentration checked"];
+
+  if (strategy.risk === "High") constraints.unshift("High-risk cap checked");
+  if (market.durationDays > 0) constraints.push("Duration checked");
+  if (strategy.status === "Blocked") constraints.push("Mandate block active");
+
+  return constraints;
+}
+
+function buildExpectedImpact(strategy: Strategy, market: MockMarketDatum) {
+  if (strategy.name === "USDC Reserve") return "Preserves runway and immediate settlement capacity.";
+  if (strategy.name === "Mantle T-Bill Vault") return "Adds stablecoin productivity within duration policy.";
+  if (strategy.name === "mETH Yield Vault") return "Adds Mantle-native liquid staking exposure with monitored ETH beta.";
+  return `${market.baseYield.toFixed(1)}% yield rejected; risk-adjusted fit is below mandate.`;
+}
+
+function average(values: number[]) {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+export const allocationData = strategies.map((strategy) => ({
+  name: strategy.name.replace("Mantle ", ""),
+  value: strategy.allocation,
+}));
+
+export const performanceData = [
+  { month: "Jan", reserves: 12.1, yield: 0.18, risk: 42 },
+  { month: "Feb", reserves: 12.2, yield: 0.24, risk: 39 },
+  { month: "Mar", reserves: 12.4, yield: 0.32, risk: 36 },
+  { month: "Apr", reserves: 12.5, yield: 0.41, risk: 34 },
+  { month: "May", reserves: 12.7, yield: 0.51, risk: 30 },
+  { month: "Jun", reserves: 12.9, yield: 0.62, risk: 27 },
+];
+
+export const policies = [
+  {
+    label: "High-risk strategy exposure",
+    limit: "Max 10%",
+    current: "8%",
+    state: "Enforced",
+  },
+  {
+    label: "Stable reserve floor",
+    limit: "Min 40%",
+    current: "45%",
+    state: "Enforced",
+  },
+  {
+    label: "RWA duration window",
+    limit: "Max 90 days",
+    current: "42 days",
+    state: "Enforced",
+  },
+  {
+    label: "Single protocol concentration",
+    limit: "Max 30%",
+    current: "29%",
+    state: "Enforced",
+  },
+];
+
+export const decisions = [
+  {
+    time: "Seeded -12m",
+    seededOffsetMinutes: 12,
+    title: "Proposal blocked",
+    detail: "Move 16% from USDC Reserve into High Yield LP",
+    result: "Blocked by policy: high-risk exposure would reach 24%",
+    severity: "blocked",
+    auditStatus: "blocked",
+    reasoningSummary: "Yield failed policy fit after volatility and exposure checks.",
+    confidence: 38,
+    treasuryPosture: "Restricted",
+    signalState: "Constrained target, 38% risk-adjusted score",
+  },
+  {
+    time: "Seeded -17m",
+    seededOffsetMinutes: 17,
+    title: "Recommendation generated",
+    detail: "Increase Mantle T-Bill Vault by 4%",
+    result: "Awaiting treasurer approval",
+    severity: "pending",
+    auditStatus: "pending",
+    reasoningSummary: "Reserve buffer cleared floor; T-Bill fit cleared policy screens.",
+    confidence: 82,
+    treasuryPosture: "Defensive",
+    signalState: "Healthy target, 85% policy-liquidity score",
+  },
+  {
+    time: "Seeded -64m",
+    seededOffsetMinutes: 64,
+    title: "Signal refresh completed",
+    detail: "Re-scored reserve, RWA, staking, and high-yield strategies",
+    result: "No mandate changes required",
+    severity: "success",
+    auditStatus: "approved",
+    reasoningSummary: "Liquidity, duration, and exposure inputs remained inside operating bands.",
+    confidence: 86,
+    treasuryPosture: "Defensive",
+    signalState: "Healthy portfolio / Conservative stance / 90% allocation efficiency",
+  },
+  {
+    time: "Seeded -1080m",
+    seededOffsetMinutes: 1080,
+    title: "Rebalance executed",
+    detail: "Shifted 3% from mETH Yield Vault to USDC Reserve",
+    result: "Compliant with all active policies",
+    severity: "success",
+    auditStatus: "approved",
+    reasoningSummary: "Reduced ETH-beta exposure and restored reserve headroom.",
+    confidence: 87,
+    treasuryPosture: "Defensive",
+    signalState: "Healthy reserve, 89% confidence",
+  },
+];
