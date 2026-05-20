@@ -1,0 +1,24 @@
+{
+  "name": "Sentinel Agent Identity",
+  "description": "Sentinel's on-chain agent identity for policy-aware treasury intelligence and execution on Mantle Sepolia.",
+  "image": "https://sentinel-nine-lemon.vercel.app/sentinel-agent.png",
+  "external_url": "https://sentinel-nine-lemon.vercel.app",
+  "attributes": [
+    {
+      "trait_type": "Network",
+      "value": "Mantle Sepolia"
+    },
+    {
+      "trait_type": "Agent Role",
+      "value": "Treasury Intelligence"
+    },
+    {
+      "trait_type": "Execution Model",
+      "value": "Policy-Gated"
+    },
+    {
+      "trait_type": "AI Role",
+      "value": "Rationale Layer"
+    }
+  ]
+}
