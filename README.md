@@ -17,6 +17,7 @@ sentinel is intentionally not an autonomous trading bot. the ai layer only expla
 - sentinel agent identity: `0x910072C6352D69cca6281231e2d3529857c09896`
 - safe strategy: `0xE8F5735A8EEAbeE56eA6c508832CeE8299164Ab7`
 - unsafe strategy: `0x63c414E01E74FF0D3304AE48352e01a368Ddcf5B`
+- agent metadata update tx: https://sepolia.mantlescan.xyz/tx/0xcdba207b5503fbc21fff9145dd88dac825e3834c293042e93983571a8fe7e6d2
 
 ### proof transactions
 
