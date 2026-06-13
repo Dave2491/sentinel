@@ -725,7 +725,7 @@ function LandingPage() {
               <BrainCircuit className="size-3.5 text-mantle" />
               <span className="truncate">AI x RWA treasury execution on Mantle</span>
             </div>
-            <h1 className="hero-display text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-white sm:text-[7.5rem] lg:text-[7.9rem] xl:text-[8.4rem]">
+            <h1 className="hero-display text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-white sm:text-[7.25rem] lg:text-[7.25rem] xl:text-[7.9rem]">
               Sentinel
             </h1>
             <p className="mx-auto mt-7 max-w-2xl text-xl leading-8 text-slate-100 sm:mx-0 sm:text-2xl">
@@ -763,7 +763,7 @@ function LandingPage() {
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1 }}
-            className="relative mx-auto h-[260px] w-full max-w-[420px] overflow-hidden sm:h-[360px] sm:max-w-[560px] lg:h-[500px] lg:max-w-[660px] xl:h-[540px] xl:max-w-[720px]"
+            className="relative mx-auto h-[260px] w-full max-w-[420px] overflow-hidden sm:h-[360px] sm:max-w-[560px] lg:h-[500px] lg:max-w-[640px] xl:h-[540px] xl:max-w-[680px]"
           >
             <MantleVaultScene />
             <div className="pointer-events-none absolute inset-x-0 bottom-3 h-20 bg-[radial-gradient(ellipse_at_center,rgba(220,231,244,0.12),transparent_62%)] blur-xl lg:bottom-16" />
@@ -1484,9 +1484,10 @@ function MantleVaultScene() {
     token.rotation.x = Math.PI / 2;
     group.add(token);
 
+    const ringMaterial = new THREE.MeshStandardMaterial({ color: 0x46d4a8, emissive: 0x102c25, metalness: 0.8, roughness: 0.24 });
     const bevelRing = new THREE.Mesh(
       new THREE.TorusGeometry(1.58, 0.018, 10, 120),
-      new THREE.MeshStandardMaterial({ color: 0x46d4a8, emissive: 0x102c25, metalness: 0.8, roughness: 0.24 }),
+      ringMaterial,
     );
     bevelRing.position.z = 0.185;
     group.add(bevelRing);
@@ -1521,21 +1522,23 @@ function MantleVaultScene() {
     for (let index = 0; index < 8; index += 1) {
       const angle = (index / 8) * Math.PI * 2;
       const node = new THREE.Mesh(new THREE.SphereGeometry(0.035, 18, 18), auditMaterial);
-      node.position.set(Math.cos(angle) * 2.08, Math.sin(angle) * 1.18, index % 2 === 0 ? 0.34 : -0.14);
+      node.position.set(Math.cos(angle) * 1.82, Math.sin(angle) * 1.02, index % 2 === 0 ? 0.32 : -0.12);
       nodes.add(node);
     }
     group.add(nodes);
 
+    const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x46d4a8, transparent: true, opacity: 0.2 });
     const orbit = new THREE.Mesh(
-      new THREE.TorusGeometry(2.08, 0.006, 8, 160),
-      new THREE.MeshBasicMaterial({ color: 0x46d4a8, transparent: true, opacity: 0.22 }),
+      new THREE.TorusGeometry(1.84, 0.006, 8, 160),
+      orbitMaterial,
     );
     orbit.scale.y = 0.56;
     orbit.rotation.z = -0.12;
     group.add(orbit);
 
     const secondaryOrbit = orbit.clone();
-    secondaryOrbit.material = new THREE.MeshBasicMaterial({ color: 0x7da7ff, transparent: true, opacity: 0.13 });
+    const secondaryOrbitMaterial = new THREE.MeshBasicMaterial({ color: 0x7da7ff, transparent: true, opacity: 0.11 });
+    secondaryOrbit.material = secondaryOrbitMaterial;
     secondaryOrbit.rotation.set(0.42, 0.24, 0.55);
     group.add(secondaryOrbit);
 
@@ -1555,7 +1558,15 @@ function MantleVaultScene() {
 
     let width = 1;
     let height = 1;
+    let baseGroupX = 0;
     let baseGroupY = 0;
+    let baseScale = 1;
+    let pointerX = 0;
+    let pointerY = 0;
+    let smoothPointerX = 0;
+    let smoothPointerY = 0;
+    let hoverTarget = 0;
+    let hoverAmount = 0;
     const resize = () => {
       const rect = host.getBoundingClientRect();
       width = Math.max(rect.width, 1);
@@ -1569,10 +1580,32 @@ function MantleVaultScene() {
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, compact ? 1.5 : 2));
       renderer.setSize(width, height, false);
-      group.scale.setScalar(compact ? 0.68 : midSize ? 0.82 : 0.78);
+      baseScale = compact ? 0.68 : midSize ? 0.82 : 0.74;
+      group.scale.setScalar(baseScale);
+      baseGroupX = compact ? 0 : midSize ? -0.12 : -0.42;
       baseGroupY = compact ? -0.08 : midSize ? -0.03 : -0.04;
       floor.visible = !compact;
     };
+
+    const updatePointer = (event: PointerEvent) => {
+      const rect = host.getBoundingClientRect();
+      pointerX = ((event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5) * 2;
+      pointerY = ((event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5) * 2;
+    };
+    const handlePointerEnter = (event: PointerEvent) => {
+      hoverTarget = 1;
+      updatePointer(event);
+    };
+    const handlePointerMove = (event: PointerEvent) => updatePointer(event);
+    const handlePointerLeave = () => {
+      hoverTarget = 0;
+      pointerX = 0;
+      pointerY = 0;
+    };
+
+    host.addEventListener("pointerenter", handlePointerEnter);
+    host.addEventListener("pointermove", handlePointerMove);
+    host.addEventListener("pointerleave", handlePointerLeave);
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
@@ -1582,11 +1615,23 @@ function MantleVaultScene() {
     const clock = new THREE.Clock();
     const animate = () => {
       const elapsed = clock.getElapsedTime();
-      group.rotation.y = -0.34 + Math.sin(elapsed * 0.25) * 0.12 + elapsed * 0.055;
-      group.rotation.x = -0.14 + Math.sin(elapsed * 0.34) * 0.045;
-      group.rotation.z = 0.06 + Math.sin(elapsed * 0.2) * 0.03;
-      group.position.y = baseGroupY + Math.sin(elapsed * 0.7) * (width < 520 ? 0.045 : 0.08);
-      nodes.rotation.z = elapsed * 0.24;
+      hoverAmount += (hoverTarget - hoverAmount) * 0.08;
+      smoothPointerX += (pointerX - smoothPointerX) * 0.08;
+      smoothPointerY += (pointerY - smoothPointerY) * 0.08;
+
+      const spin = elapsed * (0.048 + hoverAmount * 0.055);
+      group.rotation.y = -0.3 + Math.sin(elapsed * 0.25) * 0.1 + spin + smoothPointerX * 0.16;
+      group.rotation.x = -0.13 + Math.sin(elapsed * 0.34) * 0.04 - smoothPointerY * 0.08;
+      group.rotation.z = 0.05 + Math.sin(elapsed * 0.2) * 0.025 + smoothPointerX * 0.03;
+      group.position.x = baseGroupX + smoothPointerX * 0.08;
+      group.position.y = baseGroupY + Math.sin(elapsed * 0.7) * (width < 520 ? 0.04 : 0.065) - smoothPointerY * 0.04;
+      group.scale.setScalar(baseScale + hoverAmount * 0.035);
+      nodes.rotation.z = elapsed * (0.22 + hoverAmount * 0.28);
+      mantleLight.intensity = 18 + hoverAmount * 8;
+      blueLight.intensity = 6 + hoverAmount * 4;
+      orbitMaterial.opacity = 0.2 + hoverAmount * 0.12;
+      secondaryOrbitMaterial.opacity = 0.11 + hoverAmount * 0.09;
+      ringMaterial.emissiveIntensity = 1 + hoverAmount * 0.45;
       renderer.render(scene, camera);
       frame = window.requestAnimationFrame(animate);
     };
@@ -1594,6 +1639,9 @@ function MantleVaultScene() {
 
     return () => {
       window.cancelAnimationFrame(frame);
+      host.removeEventListener("pointerenter", handlePointerEnter);
+      host.removeEventListener("pointermove", handlePointerMove);
+      host.removeEventListener("pointerleave", handlePointerLeave);
       resizeObserver.disconnect();
       host.removeChild(renderer.domElement);
       scene.traverse((object) => {
@@ -1611,7 +1659,7 @@ function MantleVaultScene() {
   return (
     <div className="absolute inset-0">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(70,212,168,0.2),transparent_32%),radial-gradient(circle_at_72%_42%,rgba(220,231,244,0.1),transparent_38%)] sm:bg-[radial-gradient(circle_at_56%_48%,rgba(70,212,168,0.18),transparent_28%),radial-gradient(circle_at_72%_42%,rgba(220,231,244,0.1),transparent_34%)]" />
-      <div ref={hostRef} className="absolute inset-0" aria-hidden="true" />
+      <div ref={hostRef} className="absolute inset-0 cursor-pointer" aria-hidden="true" />
       <div className="pointer-events-none absolute bottom-10 left-1/2 hidden -translate-x-1/2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-400 backdrop-blur md:block">
         Mantle RWA proof layer
       </div>
