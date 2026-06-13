@@ -713,8 +713,8 @@ function LandingPage() {
   return (
     <>
       <LandingHeader />
-      <section className="relative mx-auto min-h-[calc(100vh-80px)] max-w-7xl px-4 pb-14 pt-5 sm:px-8 sm:pb-20 lg:pb-24">
-        <div className="grid min-h-[min(760px,calc(100vh-120px))] items-center gap-8 lg:grid-cols-[0.92fr_1.08fr]">
+      <section className="relative mx-auto min-h-[calc(100vh-80px)] max-w-7xl px-4 pb-14 pt-5 sm:px-8 sm:pb-20 lg:pb-20">
+        <div className="grid min-h-[min(680px,calc(100vh-150px))] items-center gap-8 lg:grid-cols-[0.98fr_1.02fr]">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -725,7 +725,7 @@ function LandingPage() {
               <BrainCircuit className="size-3.5 text-mantle" />
               <span className="truncate">AI x RWA treasury execution on Mantle</span>
             </div>
-            <h1 className="hero-display text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-white sm:text-[7.5rem] lg:text-[8.8rem]">
+            <h1 className="hero-display text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-white sm:text-[7.5rem] lg:text-[7.9rem] xl:text-[8.4rem]">
               Sentinel
             </h1>
             <p className="mx-auto mt-7 max-w-2xl text-xl leading-8 text-slate-100 sm:mx-0 sm:text-2xl">
@@ -763,7 +763,7 @@ function LandingPage() {
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1 }}
-            className="relative mx-auto h-[260px] w-full max-w-[420px] overflow-hidden sm:h-[360px] sm:max-w-[560px] lg:h-auto lg:min-h-[620px] lg:max-w-none lg:overflow-visible"
+            className="relative mx-auto h-[260px] w-full max-w-[420px] overflow-hidden sm:h-[360px] sm:max-w-[560px] lg:h-[500px] lg:max-w-[660px] xl:h-[540px] xl:max-w-[720px]"
           >
             <MantleVaultScene />
             <div className="pointer-events-none absolute inset-x-0 bottom-3 h-20 bg-[radial-gradient(ellipse_at_center,rgba(220,231,244,0.12),transparent_62%)] blur-xl lg:bottom-16" />
@@ -1563,14 +1563,14 @@ function MantleVaultScene() {
       const compact = width < 520;
       const midSize = width >= 520 && width < 900;
 
-      camera.fov = compact ? 46 : midSize ? 42 : 38;
-      camera.position.set(0, compact ? 0.06 : 0.18, compact ? 6.4 : midSize ? 5.9 : 5.4);
+      camera.fov = compact ? 46 : midSize ? 42 : 40;
+      camera.position.set(0, compact ? 0.06 : 0.12, compact ? 6.4 : midSize ? 6.1 : 6.7);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, compact ? 1.5 : 2));
       renderer.setSize(width, height, false);
-      group.scale.setScalar(compact ? 0.68 : midSize ? 0.84 : 1);
-      baseGroupY = compact ? -0.08 : midSize ? -0.03 : 0;
+      group.scale.setScalar(compact ? 0.68 : midSize ? 0.82 : 0.78);
+      baseGroupY = compact ? -0.08 : midSize ? -0.03 : -0.04;
       floor.visible = !compact;
     };
 
