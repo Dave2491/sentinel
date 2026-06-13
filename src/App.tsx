@@ -763,7 +763,7 @@ function LandingPage() {
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1 }}
-            className="relative mx-auto h-[260px] w-full max-w-[420px] overflow-hidden sm:h-[360px] sm:max-w-[560px] lg:h-[470px] lg:max-w-[560px] xl:h-[500px] xl:max-w-[600px]"
+            className="relative mx-auto h-[220px] w-full max-w-[340px] overflow-hidden sm:h-[300px] sm:max-w-[470px] md:h-[340px] md:max-w-[520px] lg:h-[470px] lg:max-w-[560px] xl:h-[500px] xl:max-w-[600px]"
           >
             <MantleVaultScene />
             <div className="pointer-events-none absolute inset-x-0 bottom-3 h-20 bg-[radial-gradient(ellipse_at_center,rgba(220,231,244,0.12),transparent_62%)] blur-xl lg:bottom-16" />
@@ -1574,16 +1574,16 @@ function MantleVaultScene() {
       const compact = width < 520;
       const midSize = width >= 520 && width < 900;
 
-      camera.fov = compact ? 46 : midSize ? 42 : 36;
-      camera.position.set(0, compact ? 0.06 : 0.08, compact ? 6.4 : midSize ? 6.6 : 9.4);
+      camera.fov = compact ? 42 : midSize ? 40 : 36;
+      camera.position.set(0, compact ? 0.1 : 0.08, compact ? 7.5 : midSize ? 7.1 : 9.4);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, compact ? 1.5 : 2));
       renderer.setSize(width, height, false);
-      baseScale = compact ? 0.68 : midSize ? 0.72 : 0.58;
+      baseScale = compact ? 0.54 : midSize ? 0.6 : 0.58;
       group.scale.setScalar(baseScale);
-      baseGroupX = compact ? 0 : midSize ? -0.08 : -0.16;
-      baseGroupY = compact ? -0.08 : midSize ? 0.12 : 0.34;
+      baseGroupX = compact ? 0 : midSize ? -0.04 : -0.16;
+      baseGroupY = compact ? 0.22 : midSize ? 0.26 : 0.34;
       floor.visible = !compact;
     };
 
@@ -1624,7 +1624,7 @@ function MantleVaultScene() {
       group.rotation.x = -0.13 + Math.sin(elapsed * 0.34) * 0.04 - smoothPointerY * 0.08;
       group.rotation.z = 0.05 + Math.sin(elapsed * 0.2) * 0.025 + smoothPointerX * 0.03;
       group.position.x = baseGroupX + smoothPointerX * 0.08;
-      group.position.y = baseGroupY + Math.sin(elapsed * 0.7) * (width < 520 ? 0.04 : 0.065) - smoothPointerY * 0.04;
+      group.position.y = baseGroupY + Math.sin(elapsed * 0.7) * (width < 520 ? 0.025 : 0.065) - smoothPointerY * (width < 520 ? 0.025 : 0.04);
       group.scale.setScalar(baseScale + hoverAmount * 0.02);
       nodes.rotation.z = elapsed * (0.22 + hoverAmount * 0.28);
       mantleLight.intensity = 18 + hoverAmount * 8;
