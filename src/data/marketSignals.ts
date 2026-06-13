@@ -37,14 +37,14 @@ export const seededMarketSignals: MarketSignalMap = {
     lastUpdated: "10:42",
     note: "Reserve yield benchmark",
   },
-  "Mantle T-Bill Vault": {
-    strategyName: "Mantle T-Bill Vault",
+  "Sentinel tUSDY Mirror": {
+    strategyName: "Sentinel tUSDY Mirror",
     apy: 4.7,
     tvlUsd: 3_734_000,
     status: "fallback",
     source: "Seeded treasury model",
     lastUpdated: "10:42",
-    note: "Short-duration RWA proxy",
+    note: "USDY-style RWA mirror proxy",
   },
   "mETH Yield Vault": {
     strategyName: "mETH Yield Vault",
@@ -161,7 +161,7 @@ function scorePool(strategyName: string, pool: DefiLlamaPool) {
     return mantleBonus + tvlScore + (text.includes("usdc") ? 20 : 8) + (apy <= 4 ? 8 : 0);
   }
 
-  if (strategyName === "Mantle T-Bill Vault") {
+  if (strategyName === "Sentinel tUSDY Mirror") {
     const stableYield = /usdc|usdt|dai|usd|rwa|treasury|bill|ondo/.test(text);
     if (!stableYield || apy < 2 || apy > 9) return 0;
     return mantleBonus + tvlScore + (apy >= 3.5 && apy <= 6.5 ? 24 : 10);

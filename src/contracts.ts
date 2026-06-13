@@ -52,6 +52,9 @@ export const strategyVaultAbi = [
     { name: "amount", type: "uint256" },
     { name: "requestedAllocationBps", type: "uint256" },
     { name: "aiRationaleHash", type: "bytes32" },
+    { name: "rwaAssetId", type: "string" },
+    { name: "assetPassportHash", type: "bytes32" },
+    { name: "complianceAttestationHash", type: "bytes32" },
     { name: "recommendationId", type: "string" },
   ],
   outputs: [{ name: "executed", type: "bool" }],
@@ -79,6 +82,17 @@ export const strategyVaultAbi = [
     { name: "reason", type: "string", indexed: false },
   ],
 },
+  {
+  type: "event",
+  name: "RwaEvidenceAnchored",
+  inputs: [
+    { name: "recommendationId", type: "string", indexed: false },
+    { name: "rwaAssetId", type: "string", indexed: false },
+    { name: "assetPassportHash", type: "bytes32", indexed: false },
+    { name: "complianceAttestationHash", type: "bytes32", indexed: false },
+    { name: "policyVersion", type: "string", indexed: false },
+  ],
+},
 ] as const;
 
 function envAddress(value: string | undefined): Address | undefined {
@@ -87,6 +101,7 @@ function envAddress(value: string | undefined): Address | undefined {
 
 export const sentinelContracts = {
   mockUSDC: envAddress(import.meta.env.VITE_MOCK_USDC_ADDRESS),
+  testnetRwa: envAddress(import.meta.env.VITE_TESTNET_RWA_ADDRESS),
   executionGuard: envAddress(import.meta.env.VITE_EXECUTION_GUARD_ADDRESS),
   strategyVault: envAddress(import.meta.env.VITE_STRATEGY_VAULT_ADDRESS),
   safeStrategy: envAddress(import.meta.env.VITE_SAFE_STRATEGY_ADDRESS),
@@ -95,6 +110,7 @@ export const sentinelContracts = {
 
 export const contractsConfigured = Boolean(
   sentinelContracts.mockUSDC &&
+    sentinelContracts.testnetRwa &&
     sentinelContracts.strategyVault &&
     sentinelContracts.safeStrategy &&
     sentinelContracts.unsafeStrategy,

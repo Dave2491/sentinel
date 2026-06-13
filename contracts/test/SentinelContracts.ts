@@ -2,12 +2,32 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 const parseUSDC = (value: string) => ethers.parseUnits(value, 6);
+const rationaleHash = ethers.id("sentinel-demo-rationale");
+const rwaAssetId = "ondo-usdy-mantle-testnet-mirror";
+const assetPassportHash = ethers.id("sentinel:ondo-usdy-mantle-passport:v1");
+const complianceAttestationHash = ethers.id("sentinel:ai-compliance-attestation:v1");
+
+function rebalanceArgs(strategy: string, amount: bigint, requestedAllocationBps: number, recommendationId: string) {
+  return [
+    strategy,
+    amount,
+    requestedAllocationBps,
+    rationaleHash,
+    rwaAssetId,
+    assetPassportHash,
+    complianceAttestationHash,
+    recommendationId,
+  ] as const;
+}
 
 async function deployFixture() {
   const [owner, user, other, safeStrategy, unsafeStrategy] = await ethers.getSigners();
 
   const MockUSDC = await ethers.getContractFactory("MockUSDC");
   const mockUSDC = await MockUSDC.deploy(owner.address);
+
+  const TestnetUSDY = await ethers.getContractFactory("TestnetUSDY");
+  const testnetUSDY = await TestnetUSDY.deploy(owner.address, assetPassportHash);
 
   const ExecutionGuard = await ethers.getContractFactory("ExecutionGuard");
   const executionGuard = await ExecutionGuard.deploy(owner.address);
@@ -26,6 +46,7 @@ async function deployFixture() {
     safeStrategy,
     unsafeStrategy,
     mockUSDC,
+    testnetUSDY,
     executionGuard,
     strategyVault,
   };
@@ -56,6 +77,25 @@ describe("MockUSDC", function () {
     await expect(mockUSDC.connect(user).mint(user.address, requested))
       .to.be.revertedWithCustomError(mockUSDC, "FaucetMintTooLarge")
       .withArgs(requested, limit);
+  });
+});
+
+describe("TestnetUSDY", function () {
+  it("deploys as a non-redeemable RWA mirror with a passport hash", async function () {
+    const { owner, testnetUSDY } = await deployFixture();
+
+    expect(await testnetUSDY.name()).to.equal("Sentinel Testnet USDY Mirror");
+    expect(await testnetUSDY.symbol()).to.equal("tUSDY");
+    expect(await testnetUSDY.assetPassportHash()).to.equal(assetPassportHash);
+    expect(await testnetUSDY.balanceOf(owner.address)).to.equal(ethers.parseUnits("1000000", 18));
+    expect(await testnetUSDY.MIRROR_NOTICE()).to.contain("Testnet mirror only");
+  });
+
+  it("allows capped testnet mirror minting", async function () {
+    const { user, testnetUSDY } = await deployFixture();
+    const amount = ethers.parseUnits("100", 18);
+
+    await expect(testnetUSDY.connect(user).mint(user.address, amount)).to.changeTokenBalance(testnetUSDY, user, amount);
   });
 });
 
@@ -151,9 +191,9 @@ describe("StrategyVault", function () {
 
     await executionGuard.setStrategyPolicy(safeStrategy.address, true, 3_000);
 
-    await expect(strategyVault.connect(user).requestRebalance(safeStrategy.address, amount, 2_500, "rec-safe-001"))
+    await expect(strategyVault.connect(user).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 2_500, "rec-safe-001")))
       .to.emit(strategyVault, "AllocationExecuted")
-      .withArgs(safeStrategy.address, amount, 2_500, "rec-safe-001");
+      .withArgs(safeStrategy.address, amount, 2_500, rationaleHash, "rec-safe-001");
 
     expect(await strategyVault.simulatedStrategyBalances(safeStrategy.address)).to.equal(amount);
   });
@@ -164,12 +204,13 @@ describe("StrategyVault", function () {
 
     await executionGuard.setStrategyPolicy(safeStrategy.address, true, 1_000);
 
-    await expect(strategyVault.connect(user).requestRebalance(safeStrategy.address, amount, 2_500, "rec-risk-001"))
+    await expect(strategyVault.connect(user).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 2_500, "rec-risk-001")))
       .to.emit(strategyVault, "AllocationBlocked")
       .withArgs(
         safeStrategy.address,
         amount,
         2_500,
+        rationaleHash,
         "rec-risk-001",
         "Requested allocation exceeds policy limit",
       );
@@ -183,17 +224,92 @@ describe("StrategyVault", function () {
 
     await executionGuard.setStrategyPolicy(safeStrategy.address, true, 2_000);
 
-    await expect(strategyVault.connect(user).requestRebalance(safeStrategy.address, amount, 1_500, "rec-event-001"))
+    await expect(strategyVault.connect(user).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 1_500, "rec-event-001")))
       .to.emit(strategyVault, "AllocationExecuted")
-      .withArgs(safeStrategy.address, amount, 1_500, "rec-event-001");
+      .withArgs(safeStrategy.address, amount, 1_500, rationaleHash, "rec-event-001");
   });
 
   it("blocked allocation emits the correct reason", async function () {
     const { user, unsafeStrategy, strategyVault } = await deployFixture();
     const amount = parseUSDC("75");
 
-    await expect(strategyVault.connect(user).requestRebalance(unsafeStrategy.address, amount, 500, "rec-blocked-001"))
+    await expect(strategyVault.connect(user).requestRebalance(...rebalanceArgs(unsafeStrategy.address, amount, 500, "rec-blocked-001")))
       .to.emit(strategyVault, "AllocationBlocked")
-      .withArgs(unsafeStrategy.address, amount, 500, "rec-blocked-001", "Strategy is not approved");
+      .withArgs(unsafeStrategy.address, amount, 500, rationaleHash, "rec-blocked-001", "Strategy is not approved");
+  });
+
+  it("can require authorized operators for production mode", async function () {
+    const { owner, user, safeStrategy, executionGuard, strategyVault } = await deployFixture();
+    const amount = parseUSDC("75");
+
+    await executionGuard.setStrategyPolicy(safeStrategy.address, true, 2_000);
+    await strategyVault.setExecutionControls(true, false);
+
+    await expect(
+      strategyVault.connect(user).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 1_500, "rec-operator-001")),
+    )
+      .to.be.revertedWithCustomError(strategyVault, "UnauthorizedOperator")
+      .withArgs(user.address);
+
+    await expect(strategyVault.connect(owner).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 1_500, "rec-operator-002")))
+      .to.emit(strategyVault, "AllocationExecuted")
+      .withArgs(safeStrategy.address, amount, 1_500, rationaleHash, "rec-operator-002");
+  });
+
+  it("owner can authorize a treasury operator", async function () {
+    const { user, safeStrategy, executionGuard, strategyVault } = await deployFixture();
+    const amount = parseUSDC("75");
+
+    await executionGuard.setStrategyPolicy(safeStrategy.address, true, 2_000);
+    await expect(strategyVault.setOperator(user.address, true))
+      .to.emit(strategyVault, "OperatorUpdated")
+      .withArgs(user.address, true);
+    await strategyVault.setExecutionControls(true, false);
+
+    await expect(strategyVault.connect(user).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 1_500, "rec-operator-003")))
+      .to.emit(strategyVault, "AllocationExecuted")
+      .withArgs(safeStrategy.address, amount, 1_500, rationaleHash, "rec-operator-003");
+  });
+
+  it("can require vault balance coverage for production mode", async function () {
+    const { user, safeStrategy, executionGuard, strategyVault } = await deployFixture();
+    const amount = parseUSDC("75");
+
+    await executionGuard.setStrategyPolicy(safeStrategy.address, true, 2_000);
+    await strategyVault.setExecutionControls(false, true);
+
+    await expect(
+      strategyVault.connect(user).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 1_500, "rec-balance-001")),
+    )
+      .to.be.revertedWithCustomError(strategyVault, "InsufficientVaultBalance")
+      .withArgs(amount, 0);
+  });
+
+  it("anchors audit evidence before the allocation verdict", async function () {
+    const { user, safeStrategy, executionGuard, strategyVault } = await deployFixture();
+    const amount = parseUSDC("75");
+
+    await executionGuard.setStrategyPolicy(safeStrategy.address, true, 2_000);
+
+    await expect(strategyVault.connect(user).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 1_500, "rec-audit-001")))
+      .to.emit(strategyVault, "AuditEvidenceAnchored")
+      .withArgs("rec-audit-001", rationaleHash, "rwa-treasury-policy-v0.3");
+  });
+
+  it("anchors RWA passport and compliance evidence before the allocation verdict", async function () {
+    const { user, safeStrategy, executionGuard, strategyVault } = await deployFixture();
+    const amount = parseUSDC("75");
+
+    await executionGuard.setStrategyPolicy(safeStrategy.address, true, 2_000);
+
+    await expect(strategyVault.connect(user).requestRebalance(...rebalanceArgs(safeStrategy.address, amount, 1_500, "rec-rwa-001")))
+      .to.emit(strategyVault, "RwaEvidenceAnchored")
+      .withArgs(
+        "rec-rwa-001",
+        rwaAssetId,
+        assetPassportHash,
+        complianceAttestationHash,
+        "rwa-treasury-policy-v0.3",
+      );
   });
 });

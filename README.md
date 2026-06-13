@@ -11,18 +11,19 @@ sentinel is intentionally not an autonomous trading bot. the ai layer only expla
 
 - network: mantle sepolia
 - frontend: 'https://sentinel-nine-lemon.vercel.app/'
-- mock usdc: `0x9aCf6726F02FAd9F25c3603B613D0d0783423Ae9`
-- execution guard: `0x0faB35f64B661CB2B0B6927F2fceF1B0e4b760E9`
-- strategy vault: `0x7d76927cb553C8591327D0a87cA3fC0C9A50ac71`
-- sentinel agent identity: `0x910072C6352D69cca6281231e2d3529857c09896`
-- safe strategy: `0xE8F5735A8EEAbeE56eA6c508832CeE8299164Ab7`
-- unsafe strategy: `0x63c414E01E74FF0D3304AE48352e01a368Ddcf5B`
+- mock usdc: `0x2e7BE27fdb3Eaf194B4064224736a033826b45bb`
+- testnet rwa mirror: `0xe762A07f880c25Cd11f9A8b58f49CCA62dd29341`
+- execution guard: `0x3BC3b56a7859B0296b74c47459e03e527D93E42B`
+- strategy vault: `0xD3BAFf222ea9EB9e5ec7751d3A730F637fF6cDd7`
+- sentinel agent identity: `0x32E1a1587aa20Af79F4b93A072863101f2d93E05`
+- safe strategy: `0x5E4DFcDD0A8e4df99b3b15E5b542E9012D3e7Cc2`
+- unsafe strategy: `0xC1563b06e9535f255959F991532382a7eB64F5FA`
 - agent metadata update tx: https://sepolia.mantlescan.xyz/tx/0xcdba207b5503fbc21fff9145dd88dac825e3834c293042e93983571a8fe7e6d2
 
 ### proof transactions
 
-- approved execution: `https://sepolia.mantlescan.xyz/tx/0x94caf43e95f1eef2e529de74f4dbb8a81faff1634a9818dcdb260139e5a0bacd`
-- blocked mandate: `https://sepolia.mantlescan.xyz/tx/0x3b2bab20672d6441edee43f97a31d2750f6a8b9843ef385f24ba6f05d68de3e8`
+- approved execution: `https://sepolia.mantlescan.xyz/tx/0x677196a6469713172520a4e10642ce331b99772d88a849ab3797bfde83ff6810`
+- blocked mandate: `https://sepolia.mantlescan.xyz/tx/0x59d456fc19af5753ab836d1e2b1fc451b05ff74204b794d6015a497bf1ebfbd6`
 
 these transactions demonstrate both sides of sentinel’s execution model: an approved treasury allocation and a policy-blocked allocation that records the mandate failure.
 
@@ -53,6 +54,49 @@ sentinel demonstrates a controlled treasury decision workflow on mantle sepolia.
 - governance-ready audit records for recommendation history
 - mantle sepolia transaction links for executed actions
 - onchain agent identity contract for sentinel
+
+## judging criteria alignment
+
+### ai x rwa integration
+
+sentinel treats ai as an explanation and structured review layer for a deterministic rwa treasury workflow. the target allocation references ondo usdy on mantle mainnet and uses a non-redeemable `TestnetUSDY` mirror on mantle sepolia so judges can test the full workflow safely.
+
+the ai/rwa flow now includes:
+
+- a real-world reference asset: ondo usdy on mantle mainnet
+- a clearly labeled testnet mirror: sentinel `tUSDY`
+- an rwa asset passport with official reference token, oracle, blocklist, and restriction metadata
+- a structured ai compliance attestation with verdict, risk level, flags, confidence, and required human review
+- onchain hashes for the asset passport and compliance attestation
+
+the mirror token does not represent ownership of real usdy, treasuries, redemption rights, or yield.
+
+### compliance awareness
+
+the frontend now surfaces explicit compliance controls before execution:
+
+- investor eligibility review
+- jurisdiction filter review
+- issuer and duration mandate
+- high-risk substitution block
+
+these controls are not represented as production kyc/aml infrastructure. they are intentionally modeled as visible governance checks so judges can see how sentinel would fit a permissioned rwa treasury workflow.
+
+### mantle network integration
+
+sentinel uses mantle sepolia as the execution and audit layer. the deployed strategy vault records approved and blocked allocation outcomes, including a bytes32 audit evidence hash tied to the recommendation, policy version, portfolio signal, compliance controls, rwa asset passport hash, and ai compliance attestation hash.
+
+### demo proof
+
+the recommended judge path is:
+
+1. open the dashboard judge cockpit.
+2. review the rwa asset evidence and compliance gate.
+3. approve the t-bill allocation path.
+4. test the blocked high-risk allocation path.
+5. open the decision log and inspect policy version, execution status, confidence, signal state, tx link, and ai rationale evidence hash.
+
+judges can also use the no-wallet judge mode on the dashboard. it links directly to the approved and blocked mantle sepolia proof transactions, so the project remains reviewable even if a wallet connection is not available during judging.
 
 ## why sentinel matters
 
@@ -113,7 +157,7 @@ sentinel presents a high-level treasury console with:
 - allocation breakdown
 - policy alignment status
 - confidence scoring
-- market signal context
+- live/fallback market signal input
 - recommended treasury actions
 - execution readiness indicators
 
@@ -124,12 +168,27 @@ recommendations are generated from deterministic treasury logic, including:
 - reserve posture
 - liquidity conditions
 - volatility context
+- live/fallback APY and TVL-style market signals
 - target allocation fit
 - policy compatibility
 - confidence score
 - execution risk status
 
-given the same input data and policy constraints, the engine should produce the same recommendation outcome.
+given the same input data, market signal snapshot, and policy constraints, the engine should produce the same recommendation outcome. live DefiLlama APY/TVL-style data is used as a scoring input when available; seeded fallback values are used when the live source is unavailable.
+
+### compliance rule evaluation
+
+sentinel evaluates RWA compliance controls as explicit rules rather than static labels.
+
+the current rule set checks:
+
+- operator authorization posture
+- jurisdiction and investor eligibility review status
+- approved RWA sleeve and duration limit
+- target concentration and redemption window
+- high-risk substitution exposure cap
+
+each rule exposes the requirement, current input, result, and evidence so judges can see why a path is cleared, monitored, or blocked.
 
 ### ai rationale layer
 
@@ -147,7 +206,7 @@ the ai layer:
 
 sentinel records an ai rationale evidence hash with execution events.
 
-the full text rationale remains in the frontend audit trail, while the onchain hash provides a compact verification anchor that the recommendation had associated rationale evidence at execution time.
+the frontend can copy or download the full audit packet json used to generate the hash. the onchain hash provides a compact verification anchor, while the exported packet lets judges recompute the hash from the recommendation, market signal, portfolio state, and compliance rule inputs.
 
 ### onchain agent identity
 
@@ -202,10 +261,15 @@ this gives judges a clear governance review surface instead of a one-off dashboa
 - mantle sepolia execution flow
 - smart-contract policy guard
 - mock usdc demo token
+- testnet usdy mirror token with explicit no-redemption notice
 - strategy vault simulation
 - blocked execution path for unsafe allocation
 - audit trail with transaction links and policy metadata
-- live market signal layer with fallback data
+- live market signal layer that feeds recommendation scoring, with fallback data
+- computed RWA compliance rules with visible inputs and requirements
+- RWA asset passport referencing official Mantle USDY metadata
+- AI compliance attestation hash anchored onchain
+- exportable audit packet json for hash verification
 - onchain ai rationale evidence hash attached to execution events
 - onchain sentinel agent identity contract
 
@@ -231,6 +295,7 @@ src/
 contracts/
   contracts/
     MockUSDC.sol
+    TestnetUSDY.sol
     ExecutionGuard.sol
     StrategyVault.sol
     SentinelAgentIdentity.sol
@@ -249,15 +314,28 @@ sentinel uses a small contract system for hackathon demonstration purposes.
 
 demo usdc token used to simulate treasury balances on mantle sepolia.
 
+### `TestnetUSDY.sol`
+
+non-redeemable testnet mirror of an ondo usdy-style rwa asset. it stores an asset passport hash and includes an onchain notice that the token has no claim on real usdy, treasuries, issuer redemption, or yield.
+
 ### `ExecutionGuard.sol`
 
 policy guard contract that validates whether an allocation is allowed before execution.
 
 ### `StrategyVault.sol`
 
-demo strategy vault used to record approved treasury allocation movement and policy-blocked attempts.
+demo strategy vault used to record approved treasury allocation intent, simulated strategy accounting, and policy-blocked attempts.
 
-the vault records execution metadata including recommendation ids and ai rationale evidence hashes, giving the demo a verifiable onchain audit trail.
+the vault records execution metadata including recommendation ids, ai rationale evidence hashes, rwa asset passport hashes, and ai compliance attestation hashes, giving the demo a verifiable onchain audit trail.
+
+the contract also includes future-ready production controls that can be enabled by the owner after redeployment:
+
+- authorized operator checks
+- vault balance coverage checks
+- an `AuditEvidenceAnchored` event that records the recommendation id, rationale hash, and policy version
+- an `RwaEvidenceAnchored` event that records the recommendation id, rwa asset id, asset passport hash, compliance attestation hash, and policy version
+
+these controls are disabled by default to preserve the judge demo path, but they make the intended production boundary explicit in code and tests.
 
 ### `SentinelAgentIdentity.sol`
 
@@ -280,10 +358,11 @@ the ai model does not:
 - manage private keys
 - perform autonomous trading
 
-the ai model does:
+the ai/compliance layer does:
 
 - explain a deterministic treasury signal
 - produce concise institutional rationale
+- produce a structured compliance attestation artifact from policy and rwa passport inputs
 - help governance reviewers understand the recommendation
 - fall back safely when unavailable
 
@@ -299,16 +378,18 @@ configure the values needed for the frontend:
 
 ```bash
 VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-VITE_OPENROUTER_API_KEY=your_openrouter_api_key
+VITE_OPENROUTER_API_KEY=
 
-VITE_MOCK_USDC_ADDRESS=0x9aCf6726F02FAd9F25c3603B613D0d0783423Ae9
-VITE_EXECUTION_GUARD_ADDRESS=0x0faB35f64B661CB2B0B6927F2fceF1B0e4b760E9
-VITE_STRATEGY_VAULT_ADDRESS=0x7d76927cb553C8591327D0a87cA3fC0C9A50ac71
-VITE_SAFE_STRATEGY_ADDRESS=0xE8F5735A8EEAbeE56eA6c508832CeE8299164Ab7
-VITE_UNSAFE_STRATEGY_ADDRESS=0x63c414E01E74FF0D3304AE48352e01a368Ddcf5B
+VITE_MOCK_USDC_ADDRESS=0x2e7BE27fdb3Eaf194B4064224736a033826b45bb
+VITE_TESTNET_RWA_ADDRESS=0xe762A07f880c25Cd11f9A8b58f49CCA62dd29341
+VITE_EXECUTION_GUARD_ADDRESS=0x3BC3b56a7859B0296b74c47459e03e527D93E42B
+VITE_STRATEGY_VAULT_ADDRESS=0xD3BAFf222ea9EB9e5ec7751d3A730F637fF6cDd7
+VITE_SENTINEL_AGENT_IDENTITY_ADDRESS=0x32E1a1587aa20Af79F4b93A072863101f2d93E05
+VITE_SAFE_STRATEGY_ADDRESS=0x5E4DFcDD0A8e4df99b3b15E5b542E9012D3e7Cc2
+VITE_UNSAFE_STRATEGY_ADDRESS=0xC1563b06e9535f255959F991532382a7eB64F5FA
 ```
 
-the openrouter key is optional for the core deterministic flow. if it is missing or unavailable, sentinel uses deterministic fallback rationale.
+the openrouter key is optional for the core deterministic flow. if it is missing or unavailable, sentinel uses deterministic fallback rationale. if you add a key locally, keep it in `.env`, do not commit it, and do not add spaces around the `=` sign.
 
 ## frontend setup
 
@@ -366,13 +447,26 @@ npm run deploy:mantle-sepolia
 the deployment script deploys:
 
 1. `MockUSDC`
-2. `ExecutionGuard`
-3. `StrategyVault`
-4. `SentinelAgentIdentity`
-5. a safe strategy placeholder
-6. an unsafe strategy placeholder
+2. `TestnetUSDY`
+3. `ExecutionGuard`
+4. `StrategyVault`
+5. `SentinelAgentIdentity`
+6. a safe strategy placeholder
+7. an unsafe strategy placeholder
 
 after deployment, copy the deployed addresses into the frontend `.env` file.
+
+the frontend requires the new mirror address:
+
+```bash
+VITE_TESTNET_RWA_ADDRESS=your_testnet_usdy_mirror_address
+```
+
+for verification, also add:
+
+```bash
+TESTNET_RWA_ADDRESS=your_testnet_usdy_mirror_address
+```
 
 ## verification
 
@@ -390,8 +484,8 @@ npm test
 
 verify the live onchain demo evidence:
 
-- approved execution: `https://sepolia.mantlescan.xyz/tx/0x94caf43e95f1eef2e529de74f4dbb8a81faff1634a9818dcdb260139e5a0bacd`
-- blocked mandate: `https://sepolia.mantlescan.xyz/tx/0x3b2bab20672d6441edee43f97a31d2750f6a8b9843ef385f24ba6f05d68de3e8`
+- approved execution: `https://sepolia.mantlescan.xyz/tx/0x677196a6469713172520a4e10642ce331b99772d88a849ab3797bfde83ff6810`
+- blocked mandate: `https://sepolia.mantlescan.xyz/tx/0x59d456fc19af5753ab836d1e2b1fc451b05ff74204b794d6015a497bf1ebfbd6`
 
 ## demo boundaries
 

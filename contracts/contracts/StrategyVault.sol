@@ -9,13 +9,28 @@ import {ExecutionGuard} from "./ExecutionGuard.sol";
 contract StrategyVault is Ownable {
     using SafeERC20 for IERC20;
 
+    string public constant POLICY_VERSION = "rwa-treasury-policy-v0.3";
+
     IERC20 public immutable treasuryAsset;
     ExecutionGuard public immutable executionGuard;
 
     uint256 public totalDeposits;
+    bool public operatorControlsEnabled;
+    bool public depositCapEnabled;
     mapping(address => uint256) public simulatedStrategyBalances;
+    mapping(address => bool) public authorizedOperators;
 
     event Deposited(address indexed depositor, uint256 amount);
+    event OperatorUpdated(address indexed operator, bool authorized);
+    event ExecutionControlsUpdated(bool operatorControlsEnabled, bool depositCapEnabled);
+    event AuditEvidenceAnchored(string recommendationId, bytes32 aiRationaleHash, string policyVersion);
+    event RwaEvidenceAnchored(
+        string recommendationId,
+        string rwaAssetId,
+        bytes32 assetPassportHash,
+        bytes32 complianceAttestationHash,
+        string policyVersion
+    );
 
     event AllocationExecuted(
         address indexed strategy,
@@ -35,10 +50,13 @@ contract StrategyVault is Ownable {
     );
 
     error ZeroAmount();
+    error UnauthorizedOperator(address operator);
+    error InsufficientVaultBalance(uint256 requested, uint256 available);
 
     constructor(address asset, address guard, address initialOwner) Ownable(initialOwner) {
         treasuryAsset = IERC20(asset);
         executionGuard = ExecutionGuard(guard);
+        authorizedOperators[initialOwner] = true;
     }
 
     function deposit(uint256 amount) external {
@@ -50,14 +68,46 @@ contract StrategyVault is Ownable {
         emit Deposited(msg.sender, amount);
     }
 
+    function setOperator(address operator, bool authorized) external onlyOwner {
+        authorizedOperators[operator] = authorized;
+        emit OperatorUpdated(operator, authorized);
+    }
+
+    function setExecutionControls(bool requireAuthorizedOperator, bool requireVaultBalance) external onlyOwner {
+        operatorControlsEnabled = requireAuthorizedOperator;
+        depositCapEnabled = requireVaultBalance;
+        emit ExecutionControlsUpdated(requireAuthorizedOperator, requireVaultBalance);
+    }
+
     function requestRebalance(
         address strategy,
         uint256 amount,
         uint256 requestedAllocationBps,
         bytes32 aiRationaleHash,
+        string calldata rwaAssetId,
+        bytes32 assetPassportHash,
+        bytes32 complianceAttestationHash,
         string calldata recommendationId
     ) external returns (bool executed) {
         if (amount == 0) revert ZeroAmount();
+        if (operatorControlsEnabled && !authorizedOperators[msg.sender]) {
+            revert UnauthorizedOperator(msg.sender);
+        }
+        if (depositCapEnabled) {
+            uint256 available = treasuryAsset.balanceOf(address(this));
+            if (amount > available) {
+                revert InsufficientVaultBalance(amount, available);
+            }
+        }
+
+        emit RwaEvidenceAnchored(
+            recommendationId,
+            rwaAssetId,
+            assetPassportHash,
+            complianceAttestationHash,
+            POLICY_VERSION
+        );
+        emit AuditEvidenceAnchored(recommendationId, aiRationaleHash, POLICY_VERSION);
 
         (bool valid, string memory reason) = executionGuard.validateAllocation(strategy, requestedAllocationBps);
 

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
@@ -11,18 +11,24 @@ import {
   type Hex,
 } from "viem";
 import { useAccount, useReadContract, useReadContracts, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import * as THREE from "three";
 import {
   Activity,
   ArrowRight,
   BrainCircuit,
   Check,
   CircleDollarSign,
+  Copy,
   Cpu,
+  Download,
   ExternalLink,
   FileClock,
   Gauge,
+  Landmark,
   Menu,
   Radio,
+  Scale,
+  ShieldCheck,
   Wallet,
   X,
 } from "lucide-react";
@@ -39,12 +45,19 @@ import {
 } from "recharts";
 import {
   decisions as initialDecisions,
+  buildAiComplianceAttestation,
   deriveTreasurySignalEngine,
+  evaluateRwaComplianceChecks,
   performanceData,
   policies,
+  rwaAssetEvidence,
+  rwaAssetPassport,
   strategies as initialStrategies,
+  type AiComplianceAttestation,
   type PolicyStatus,
   type RecommendationSignal,
+  type RwaAssetPassport,
+  type RwaComplianceCheck,
   type SignalState,
   type RiskLevel,
   type Strategy,
@@ -112,8 +125,29 @@ type ContractTelemetry = {
   walletUSDC: string;
 };
 
+type RwaEvidenceBundle = {
+  assetPassport: RwaAssetPassport;
+  assetPassportJson: string;
+  assetPassportHash: Hex;
+  complianceAttestation: AiComplianceAttestation;
+  complianceAttestationJson: string;
+  complianceAttestationHash: Hex;
+};
+
 const CHAIN_LABEL = "Mantle Sepolia";
 const MANTLESCAN_BASE_URL = "https://sepolia.mantlescan.xyz";
+const PROOF_TRANSACTIONS: Array<{ label: string; txHash: Hex; detail: string }> = [
+  {
+    label: "Approved allocation",
+    txHash: "0x677196a6469713172520a4e10642ce331b99772d88a849ab3797bfde83ff6810",
+    detail: "Policy-cleared move into the Sentinel tUSDY mirror sleeve.",
+  },
+  {
+    label: "Blocked mandate",
+    txHash: "0x59d456fc19af5753ab836d1e2b1fc451b05ff74204b794d6015a497bf1ebfbd6",
+    detail: "High-risk allocation attempt recorded as a mandate failure.",
+  },
+];
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-US", {
@@ -149,9 +183,9 @@ function App() {
   const [marketSignals, setMarketSignals] = useState<MarketSignalMap>(seededMarketSignals);
   const [simulationStatus, setSimulationStatus] = useState<SimulationStatus>({
     kind: "idle",
-    message: contractsConfigured ? "Policy-aware execution ready." : "Demo treasury book active.",
+    message: contractsConfigured ? "RWA execution gate ready." : "Demo treasury book active.",
     detail: contractsConfigured
-      ? "Recommendations are evaluated against mandates before StrategyVault submission."
+      ? "Recommendations are evaluated against RWA policy and compliance controls before StrategyVault submission."
       : "Seeded portfolio and policy signals are live. Add Mantle Sepolia contract addresses to enable execution.",
   });
   const { writeContractAsync } = useWriteContract();
@@ -230,8 +264,13 @@ function App() {
   }, [contractReads, contractReadsLoading, walletUSDCBalance]);
 
   const signalEngine = useMemo<TreasurySignalEngine>(
-    () => deriveTreasurySignalEngine(strategyState),
-    [strategyState],
+    () => deriveTreasurySignalEngine(strategyState, marketSignals),
+    [marketSignals, strategyState],
+  );
+  const safeRecommendation = signalEngine.recommendations.find((item) => item.id === "tBillRebalance");
+  const complianceChecks = useMemo(
+    () => evaluateRwaComplianceChecks(strategyState, safeRecommendation),
+    [safeRecommendation, strategyState],
   );
 
   useEffect(() => {
@@ -359,7 +398,7 @@ function App() {
             return { ...strategy, allocation: Math.max(strategy.allocation - 4, 0), value: strategy.value - 515000 };
           }
 
-          if (strategy.name === "Mantle T-Bill Vault") {
+          if (strategy.name === "Sentinel tUSDY Mirror") {
             return { ...strategy, allocation: strategy.allocation + 4, value: strategy.value + 515000 };
           }
 
@@ -369,8 +408,8 @@ function App() {
       setDecisionLog((current) => [
         {
           time: currentTime(),
-          title: "Recommendation executed",
-          detail: "Moved 4% from USDC Reserve into Mantle T-Bill Vault",
+          title: "Recommendation recorded",
+          detail: "Recorded 4% USDC Reserve intent for Sentinel tUSDY Mirror",
           result: `Recorded on Mantle Sepolia: ${shortHash(receipt.transactionHash)}`,
           severity: "success",
           auditStatus: "approved",
@@ -436,7 +475,9 @@ function App() {
 
     try {
      const recommendationId = `safe-${Date.now()}`;
-const rationaleEvidence = `Sentinel approved this rebalance after deterministic policy checks for recommendation ${recommendationId}.`;
+const recommendation = signalEngine.recommendations.find((item) => item.id === "tBillRebalance");
+const rwaEvidence = buildRwaEvidenceBundle(recommendation, complianceChecks, signalEngine);
+const rationaleEvidence = buildAuditEvidencePacket("approved", recommendationId, recommendation, signalEngine, complianceChecks, rwaEvidence);
 const aiRationaleHash: Hex = keccak256(stringToHex(rationaleEvidence));
 
 const hash = await writeContractAsync({
@@ -448,6 +489,9 @@ const hash = await writeContractAsync({
   parseUnits("515000", 6),
   3_200n,
   aiRationaleHash,
+  rwaEvidence.assetPassport.assetId,
+  rwaEvidence.assetPassportHash,
+  rwaEvidence.complianceAttestationHash,
   recommendationId,
 ],
 });
@@ -457,7 +501,7 @@ const hash = await writeContractAsync({
         {
           time: currentTime(),
           title: "Execution submitted",
-          detail: "4% USDC Reserve to Mantle T-Bill Vault",
+          detail: "4% USDC Reserve to Sentinel tUSDY Mirror",
           result: `Awaiting Mantle Sepolia confirmation: ${shortHash(hash)}`,
           severity: "pending",
           auditStatus: "pending",
@@ -517,7 +561,10 @@ const hash = await writeContractAsync({
 
     try {
      const recommendationId = `blocked-${Date.now()}`;
-const rationaleEvidence = `Sentinel blocked this rebalance after deterministic policy checks for recommendation ${recommendationId}.`;
+const recommendation = signalEngine.recommendations.find((item) => item.id === "highYieldBlock");
+const blockedComplianceChecks = evaluateRwaComplianceChecks(strategyState, recommendation);
+const rwaEvidence = buildRwaEvidenceBundle(recommendation, blockedComplianceChecks, signalEngine);
+const rationaleEvidence = buildAuditEvidencePacket("blocked", recommendationId, recommendation, signalEngine, blockedComplianceChecks, rwaEvidence);
 const aiRationaleHash: Hex = keccak256(stringToHex(rationaleEvidence));
 
 const hash = await writeContractAsync({
@@ -529,6 +576,9 @@ const hash = await writeContractAsync({
   parseUnits("206000", 6),
   2_400n,
   aiRationaleHash,
+  rwaEvidence.assetPassport.assetId,
+  rwaEvidence.assetPassportHash,
+  rwaEvidence.complianceAttestationHash,
   recommendationId,
 ],
 });
@@ -638,6 +688,7 @@ const hash = await writeContractAsync({
                   simulationStatus={simulationStatus}
                   contractTelemetry={contractTelemetry}
                   signalEngine={signalEngine}
+                  complianceChecks={complianceChecks}
                   marketSignals={marketSignals}
                   txPending={isReceiptPending}
                   onMintDemoUSDC={mintDemoUSDC}
@@ -662,54 +713,68 @@ function LandingPage() {
   return (
     <>
       <LandingHeader />
-      <section className="relative mx-auto grid min-h-[calc(100vh-80px)] max-w-7xl items-center gap-9 px-4 pb-20 pt-4 sm:gap-11 sm:px-8 sm:pb-28 sm:pt-6 lg:grid-cols-[0.95fr_1.05fr] lg:pb-32 lg:pt-2">
-        <motion.div
-          aria-hidden="true"
-          animate={{ opacity: [0.18, 0.34, 0.18], scale: [1, 1.04, 1] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute left-4 top-12 -z-10 h-44 w-44 rounded-full bg-mantle/20 blur-3xl sm:left-8 sm:top-16 sm:h-56 sm:w-56"
-        />
+      <section className="relative mx-auto min-h-[calc(100vh-80px)] max-w-7xl px-4 pb-14 pt-5 sm:px-8 sm:pb-20 lg:pb-24">
+        <div className="grid min-h-[min(760px,calc(100vh-120px))] items-center gap-8 lg:grid-cols-[0.92fr_1.08fr]">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="relative z-10 max-w-3xl text-center sm:text-left"
+          >
+            <div className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-white/12 bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-slate-200 shadow-premium backdrop-blur-xl">
+              <BrainCircuit className="size-3.5 text-mantle" />
+              <span className="truncate">AI x RWA treasury execution on Mantle</span>
+            </div>
+            <h1 className="hero-display text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-white sm:text-[7.5rem] lg:text-[8.8rem]">
+              Sentinel
+            </h1>
+            <p className="mx-auto mt-7 max-w-2xl text-xl leading-8 text-slate-100 sm:mx-0 sm:text-2xl">
+              AI-assisted RWA treasury compliance on Mantle Sepolia.
+            </p>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-muted sm:mx-0">
+              Short-duration RWA allocations are scored, explained, checked against compliance-aware mandates, and recorded with audit evidence before capital moves.
+            </p>
+            <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:mx-0 sm:grid-cols-3">
+              <MiniSignal label="RWA screen" value="Active" />
+              <MiniSignal label="Audit hash" value="Onchain" emphasized />
+              <MiniSignal label="Compliance" value="Gated" />
+            </div>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link
+                to="/dashboard"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-frost px-5 py-3 text-sm font-semibold text-ink shadow-[0_16px_45px_rgba(220,231,244,0.16)] transition hover:-translate-y-0.5 hover:bg-white sm:w-auto"
+              >
+                Launch Treasury
+                <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+              </Link>
+              <a
+                href={mantlescanTxUrl(PROOF_TRANSACTIONS[0].txHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-mantle/35 hover:bg-white/[0.06] sm:w-auto"
+              >
+                View Proof
+                <ExternalLink className="size-4" />
+              </a>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.1 }}
+            className="relative min-h-[360px] lg:min-h-[620px]"
+          >
+            <MantleVaultScene />
+            <div className="pointer-events-none absolute inset-x-0 bottom-3 h-20 bg-[radial-gradient(ellipse_at_center,rgba(220,231,244,0.12),transparent_62%)] blur-xl lg:bottom-16" />
+          </motion.div>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="max-w-3xl text-center sm:text-left"
-        >
-          <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-mantle/20 bg-mantle/10 px-3 py-1 text-xs font-medium text-mantle sm:mb-6">
-            <BrainCircuit className="size-3.5" />
-            <span className="truncate">Mantle Turing Test Hackathon 2026</span>
-          </div>
-          <h1 className="text-[clamp(3rem,17vw,4.5rem)] font-semibold leading-[1.02] tracking-normal text-white sm:text-6xl lg:text-7xl">
-            Sentinel
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-200 sm:mx-0 sm:mt-6 sm:text-xl">
-            Policy-aware treasury execution on Mantle Sepolia.
-          </p>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-muted sm:mx-0 sm:mt-5">
-            Recommendations are evaluated against treasury mandates before execution, with every decision preserved for governance review.
-          </p>
-          <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:mx-0 sm:mt-8 sm:grid-cols-3">
-            <MiniSignal label="Signal coverage" value="Active" />
-            <MiniSignal label="Confidence" value="91%" emphasized />
-            <MiniSignal label="Stance" value="Conservative" />
-          </div>
-          <div className="mt-8 sm:mt-9">
-            <Link
-              to="/dashboard"
-              className="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-frost px-5 py-3 text-sm font-semibold text-ink shadow-[0_16px_45px_rgba(220,231,244,0.16)] transition hover:-translate-y-0.5 hover:bg-white sm:w-auto"
-            >
-              Launch Treasury
-              <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          whileHover={{ y: -4 }}
-          className="relative min-w-0 rounded-xl border border-white/10 bg-white/[0.055] p-2.5 shadow-premium backdrop-blur-xl before:absolute before:inset-x-10 before:-top-px before:h-px before:bg-gradient-to-r before:from-transparent before:via-mantle/60 before:to-transparent sm:p-3"
+          transition={{ duration: 0.65, delay: 0.35 }}
+          className="relative z-10"
         >
           <ProductGlimpse totalValue={totalValue} />
         </motion.div>
@@ -725,6 +790,7 @@ function DashboardPage({
   simulationStatus,
   contractTelemetry,
   signalEngine,
+  complianceChecks,
   marketSignals,
   txPending,
   onMintDemoUSDC,
@@ -737,6 +803,7 @@ function DashboardPage({
   simulationStatus: SimulationStatus;
   contractTelemetry: ContractTelemetry;
   signalEngine: TreasurySignalEngine;
+  complianceChecks: RwaComplianceCheck[];
   marketSignals: MarketSignalMap;
   txPending: boolean;
   onMintDemoUSDC: () => void;
@@ -751,12 +818,12 @@ function DashboardPage({
 
   return (
     <PageFrame
-      eyebrow="Treasury console"
-      title="Portfolio intelligence with policy-aware execution."
-      description="Policy-aware treasury execution on Mantle Sepolia, with seeded portfolio signals ready for review."
+      eyebrow="AI x RWA treasury console"
+      title="RWA allocation intelligence with compliance-aware execution."
+      description="Sentinel scores short-duration RWA exposure, explains the deterministic signal with AI, checks compliance-aware mandates, and anchors execution evidence on Mantle Sepolia."
       signals={[
-        "Signal engine active",
-        "Re-evaluated dynamically",
+        "RWA signal engine active",
+        "Compliance controls visible",
         `${signalEngine.strategySignals.length} strategy models active`,
         `Treasury stance: ${formatTreasuryPosture(signalEngine.posture)}`,
       ]}
@@ -765,20 +832,24 @@ function DashboardPage({
   <section className="rounded-xl border border-mantle/20 bg-mantle/[0.055] p-4 shadow-premium backdrop-blur-xl sm:p-5">
     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mantle">Demo flow</p>
-        <h2 className="mt-2 text-lg font-semibold text-white">How to review Sentinel in under two minutes</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mantle">Judge cockpit</p>
+        <h2 className="mt-2 text-lg font-semibold text-white">AI x RWA workflow, policy gate, and Mantle proof in one pass</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-          Follow this path to see the policy engine, AI rationale, execution boundary, and audit trail working together.
+          Review the short-duration RWA allocation, inspect the compliance controls, then execute the allowed path or record the blocked mandate test.
         </p>
       </div>
       <div className="grid gap-2 text-sm text-slate-200 sm:grid-cols-2 lg:min-w-[520px]">
-        <DemoStep number="1" label="Review recommendation" />
-        <DemoStep number="2" label="Run policy pre-check" />
-        <DemoStep number="3" label="Execute or block action" />
-        <DemoStep number="4" label="Inspect audit trail" />
+        <DemoStep number="1" label="RWA asset screen" />
+        <DemoStep number="2" label="Compliance gate" />
+        <DemoStep number="3" label="Mantle execution" />
+        <DemoStep number="4" label="Audit hash trail" />
       </div>
     </div>
   </section>
+
+  <JudgeEvidenceStrip />
+  <JudgeModePanel />
+  <RwaCompliancePanel complianceChecks={complianceChecks} />
 
   <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
     <TreasuryOverview
@@ -798,6 +869,7 @@ function DashboardPage({
       simulationStatus={simulationStatus}
       contractsConfigured={contractTelemetry.configured}
       signalEngine={signalEngine}
+      complianceChecks={complianceChecks}
       marketSignals={marketSignals}
       txPending={txPending}
       onApproveRecommendation={onApproveRecommendation}
@@ -825,7 +897,16 @@ function StrategiesPage({
       description="A curated strategy book for reserve liquidity, short-duration RWA exposure, Mantle liquid staking yield, and constrained higher-risk allocation."
       signals={["Live APY/TVL signals monitored", `Confidence: ${signalEngine.confidence}%`, "Mandate screens active"]}
     >
-      <div className="grid min-w-0 gap-4 md:grid-cols-2">
+      <motion.div
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-80px" }}
+        variants={{
+          hidden: {},
+          show: { transition: { staggerChildren: 0.09 } },
+        }}
+        className="grid min-w-0 gap-4 md:grid-cols-2"
+      >
         {strategies.map((strategy) => {
           const signal = signalEngine.strategySignalMap[strategy.name];
           const marketSignal = marketSignals[strategy.name] ?? seededMarketSignals[strategy.name];
@@ -833,8 +914,12 @@ function StrategiesPage({
           return (
           <motion.article
             key={strategy.name}
+            variants={{
+              hidden: { opacity: 0, y: 18, scale: 0.985 },
+              show: { opacity: 1, y: 0, scale: 1 },
+            }}
             whileHover={{ y: -4 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
             className="group min-w-0 rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.065] to-white/[0.035] p-4 shadow-premium backdrop-blur-xl transition hover:border-mantle/25 hover:shadow-glow sm:p-5"
           >
             <div className="flex flex-col gap-4 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
@@ -890,12 +975,20 @@ function StrategiesPage({
           </motion.article>
           );
         })}
-      </div>
+      </motion.div>
     </PageFrame>
   );
 }
 
 function PolicyPage() {
+  const policyPipeline = [
+    { index: "01", label: "Recommendation", state: "Input" },
+    { index: "02", label: "Policy Simulation", state: "Check" },
+    { index: "03", label: "Risk Threshold Check", state: "Validate" },
+    { index: "04", label: "Execution Guard", state: "Enforce" },
+    { index: "05", label: "Approved / Blocked", state: "Verdict" },
+  ];
+
   return (
     <PageFrame
       eyebrow="Policy engine"
@@ -918,13 +1011,20 @@ function PolicyPage() {
               </div>
             </div>
           </div>
-          <div className="mt-5 grid gap-3">
-            <PolicyStep index="01" label="Recommendation" state="Input" />
-            <PolicyStep index="02" label="Policy Simulation" state="Check" />
-            <PolicyStep index="03" label="Risk Threshold Check" state="Validate" />
-            <PolicyStep index="04" label="Execution Guard" state="Enforce" />
-            <PolicyStep index="05" label="Approved / Blocked" state="Verdict" />
-          </div>
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-80px" }}
+            variants={{
+              hidden: {},
+              show: { transition: { staggerChildren: 0.16, delayChildren: 0.1 } },
+            }}
+            className="mt-5 grid gap-3"
+          >
+            {policyPipeline.map((step, index) => (
+              <PolicyStep key={step.index} {...step} active={index < 4} final={index === policyPipeline.length - 1} />
+            ))}
+          </motion.div>
         </Panel>
         <PolicyControls />
       </div>
@@ -964,9 +1064,15 @@ function LogsPage({ decisions, signalEngine }: { decisions: Decision[]; signalEn
           ))}
         </div>
         <div className="space-y-3">
+          <AnimatePresence mode="popLayout">
           {filteredDecisions.map((decision) => (
             <motion.div
               key={`${decision.time}-${decision.title}`}
+              layout
+              initial={{ opacity: 0, y: 12, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.985 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
               whileHover={{ x: 3 }}
               className="rounded-md border border-white/10 bg-white/[0.035] p-3.5 transition hover:border-white/20 sm:p-4"
             >
@@ -997,10 +1103,11 @@ function LogsPage({ decisions, signalEngine }: { decisions: Decision[]; signalEn
                 </p>
               ) : null}
               <div className="mt-4 grid gap-2 border-t border-white/10 pt-3 text-xs leading-5 text-muted md:grid-cols-4">
-                <span>Policy: treasury-mandate-v1</span>
+                <span>Policy: rwa-treasury-policy-v0.3</span>
                 <span>Chain: {decision.chainLabel ?? CHAIN_LABEL}</span>
                 <span>Execution: {decision.executionStatus ?? getDecisionAuditStatusLabel(decision)}</span>
                 <span>Confidence: {decision.confidence ?? signalEngine.confidence}%</span>
+                <span>Evidence: AI rationale packet hash</span>
                 <span>Treasury stance: {formatTreasuryPosture(decision.treasuryPosture ?? signalEngine.posture)}</span>
                 <span className="md:col-span-2">Signal: {decision.signalState ?? signalEngine.signalState}</span>
               </div>
@@ -1012,10 +1119,15 @@ function LogsPage({ decisions, signalEngine }: { decisions: Decision[]; signalEn
               ) : null}
             </motion.div>
           ))}
+          </AnimatePresence>
           {filteredDecisions.length === 0 ? (
-            <div className="rounded-md border border-white/10 bg-white/[0.035] p-5 text-sm text-muted">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-md border border-white/10 bg-white/[0.035] p-5 text-sm text-muted"
+            >
               No {auditFilter === "all" ? "" : `${auditFilter} `}audit records match the current filter.
-            </div>
+            </motion.div>
           ) : null}
         </div>
       </Panel>
@@ -1279,19 +1391,202 @@ function PageFrame({
   );
 }
 
+function MantleVaultScene() {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+    camera.position.set(0, 0.18, 5.4);
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    host.appendChild(renderer.domElement);
+
+    const group = new THREE.Group();
+    group.rotation.set(-0.16, -0.56, 0.08);
+    scene.add(group);
+
+    scene.add(new THREE.AmbientLight(0xdce7f4, 0.22));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.6);
+    keyLight.position.set(-2.4, 3.4, 4);
+    scene.add(keyLight);
+
+    const mantleLight = new THREE.PointLight(0x46d4a8, 18, 8);
+    mantleLight.position.set(2.8, -1.1, 2.4);
+    scene.add(mantleLight);
+
+    const blueLight = new THREE.PointLight(0x7da7ff, 6, 7);
+    blueLight.position.set(-3.2, 1.4, 2.2);
+    scene.add(blueLight);
+
+    const edgeMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x05070a,
+      metalness: 0.92,
+      roughness: 0.28,
+      clearcoat: 0.85,
+      clearcoatRoughness: 0.22,
+    });
+    const faceMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x10151d,
+      metalness: 0.74,
+      roughness: 0.18,
+      clearcoat: 1,
+      clearcoatRoughness: 0.18,
+    });
+    const token = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.55, 1.55, 0.34, 96, 1, false),
+      [edgeMaterial, faceMaterial, faceMaterial],
+    );
+    token.rotation.x = Math.PI / 2;
+    group.add(token);
+
+    const bevelRing = new THREE.Mesh(
+      new THREE.TorusGeometry(1.58, 0.018, 10, 120),
+      new THREE.MeshStandardMaterial({ color: 0x46d4a8, emissive: 0x102c25, metalness: 0.8, roughness: 0.24 }),
+    );
+    bevelRing.position.z = 0.185;
+    group.add(bevelRing);
+
+    const backRing = bevelRing.clone();
+    backRing.position.z = -0.185;
+    group.add(backRing);
+
+    const texture = new THREE.TextureLoader().load(mantleLogoUrl);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const logo = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.42, 1.42),
+      new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0.94,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    logo.position.z = 0.205;
+    group.add(logo);
+
+    const auditMaterial = new THREE.MeshStandardMaterial({
+      color: 0xdce7f4,
+      emissive: 0x46d4a8,
+      emissiveIntensity: 0.55,
+      roughness: 0.34,
+      metalness: 0.35,
+    });
+    const nodes = new THREE.Group();
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (index / 8) * Math.PI * 2;
+      const node = new THREE.Mesh(new THREE.SphereGeometry(0.035, 18, 18), auditMaterial);
+      node.position.set(Math.cos(angle) * 2.08, Math.sin(angle) * 1.18, index % 2 === 0 ? 0.34 : -0.14);
+      nodes.add(node);
+    }
+    group.add(nodes);
+
+    const orbit = new THREE.Mesh(
+      new THREE.TorusGeometry(2.08, 0.006, 8, 160),
+      new THREE.MeshBasicMaterial({ color: 0x46d4a8, transparent: true, opacity: 0.22 }),
+    );
+    orbit.scale.y = 0.56;
+    orbit.rotation.z = -0.12;
+    group.add(orbit);
+
+    const secondaryOrbit = orbit.clone();
+    secondaryOrbit.material = new THREE.MeshBasicMaterial({ color: 0x7da7ff, transparent: true, opacity: 0.13 });
+    secondaryOrbit.rotation.set(0.42, 0.24, 0.55);
+    group.add(secondaryOrbit);
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(8, 2.2),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.035,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    floor.position.set(0.45, -1.78, -0.4);
+    floor.rotation.x = -Math.PI / 2;
+    floor.rotation.z = -0.1;
+    scene.add(floor);
+
+    let width = 1;
+    let height = 1;
+    const resize = () => {
+      const rect = host.getBoundingClientRect();
+      width = Math.max(rect.width, 1);
+      height = Math.max(rect.height, 1);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height, false);
+    };
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(host);
+    resize();
+
+    let frame = 0;
+    const clock = new THREE.Clock();
+    const animate = () => {
+      const elapsed = clock.getElapsedTime();
+      group.rotation.y = -0.56 + Math.sin(elapsed * 0.25) * 0.16 + elapsed * 0.09;
+      group.rotation.x = -0.16 + Math.sin(elapsed * 0.34) * 0.06;
+      group.rotation.z = 0.08 + Math.sin(elapsed * 0.2) * 0.035;
+      group.position.y = Math.sin(elapsed * 0.7) * 0.08;
+      nodes.rotation.z = elapsed * 0.24;
+      renderer.render(scene, camera);
+      frame = window.requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      host.removeChild(renderer.domElement);
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.geometry.dispose();
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          materials.forEach((material) => material.dispose());
+        }
+      });
+      texture.dispose();
+      renderer.dispose();
+    };
+  }, []);
+
+  return (
+    <div className="absolute inset-0">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_56%_48%,rgba(70,212,168,0.18),transparent_28%),radial-gradient(circle_at_72%_42%,rgba(220,231,244,0.1),transparent_34%)]" />
+      <div ref={hostRef} className="absolute inset-0" aria-hidden="true" />
+      <div className="pointer-events-none absolute bottom-10 left-1/2 hidden -translate-x-1/2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-400 backdrop-blur md:block">
+        Policy token rotating live
+      </div>
+    </div>
+  );
+}
+
 function ProductGlimpse({ totalValue }: { totalValue: number }) {
   return (
-    <div className="min-w-0 rounded-lg border border-white/10 bg-[#0a0d14]/90 p-3 sm:p-4">
-      <div className="flex flex-col gap-3 border-b border-white/10 pb-4 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+    <div className="min-w-0 rounded-xl border border-white/10 bg-[#080b10]/90 p-3 shadow-premium backdrop-blur-xl sm:p-4 lg:grid lg:grid-cols-[0.8fr_1.2fr] lg:gap-4">
+      <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-muted">Treasury intelligence</p>
-          <p className="mt-1 text-2xl font-semibold text-white">{formatCurrency(totalValue)}</p>
+          <p className="mt-2 text-3xl font-semibold text-white">{formatCurrency(totalValue)}</p>
+          <p className="mt-2 max-w-sm text-xs leading-5 text-muted">RWA allocation, compliance gate, and audit trail compressed into one judge-ready flow.</p>
         </div>
         <div className="w-fit rounded-full border border-mantle/20 bg-mantle/10 px-3 py-1 text-xs text-mantle">
           Policies active
         </div>
       </div>
-      <div className="grid gap-3 pt-4">
+      <div className="grid gap-3 pt-4 lg:pt-0">
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
           <div className="flex items-center justify-between gap-3 text-xs text-muted">
             <span className="inline-flex items-center gap-2">
@@ -1306,10 +1601,177 @@ function ProductGlimpse({ totalValue }: { totalValue: number }) {
             <PreviewSignalBar label="High-risk cap" width="34%" tone="bg-danger/70" />
           </div>
         </div>
-        <PreviewRow label="Treasury recommendation" value="+4% Mantle T-Bill Vault" tone="text-mantle" />
-        <PreviewRow label="Policy verdict" value="High Yield LP blocked" tone="text-danger" />
-        <PreviewRow label="Audit state" value="Logged for governance" tone="text-blue-200" />
+        <PreviewRow label="RWA recommendation" value="+4% Sentinel tUSDY Mirror" tone="text-mantle" />
+        <PreviewRow label="Compliance verdict" value="High Yield LP blocked" tone="text-danger" />
+        <PreviewRow label="Audit evidence" value="Hash anchored onchain" tone="text-blue-200" />
       </div>
+    </div>
+  );
+}
+
+function JudgeEvidenceStrip() {
+  const items = [
+    {
+      icon: BrainCircuit,
+      label: "AI x RWA",
+      value: "Rationale + policy audit",
+      detail: "AI explains deterministic RWA allocation signals; execution uses hashed audit packets.",
+    },
+    {
+      icon: Landmark,
+      label: "Mantle",
+      value: "Sepolia execution proof",
+      detail: "StrategyVault records approved and blocked allocation outcomes on Mantle Sepolia.",
+    },
+    {
+      icon: ShieldCheck,
+      label: "Compliance",
+      value: "Eligibility surfaced",
+      detail: "Jurisdiction, investor eligibility, duration, and high-risk substitution checks are visible.",
+    },
+    {
+      icon: Scale,
+      label: "RWA validity",
+      value: "USDY-style mirror sleeve",
+      detail: "The demo frames the target asset class and mandate constraints before execution.",
+    },
+  ];
+
+  return (
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {items.map((item) => (
+        <div key={item.label} className="rounded-lg border border-white/10 bg-white/[0.04] p-4 shadow-premium">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex size-9 items-center justify-center rounded-md border border-white/10 bg-black/20">
+              <item.icon className="size-4 text-mantle" />
+            </div>
+            <span className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-muted">
+              {item.label}
+            </span>
+          </div>
+          <p className="mt-4 text-sm font-semibold text-white">{item.value}</p>
+          <p className="mt-2 text-xs leading-5 text-muted">{item.detail}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function JudgeModePanel() {
+  return (
+    <section className="rounded-xl border border-blue-300/20 bg-blue-300/[0.055] p-4 shadow-premium backdrop-blur-xl sm:p-5">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,1.08fr)] lg:items-center">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">
+            <FileClock className="size-4" />
+            No-wallet judge mode
+          </div>
+          <h2 className="mt-2 text-lg font-semibold text-white">Review the complete proof path without connecting a wallet</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+            The live controls still support wallet execution, but these proof links let judges verify the approved and blocked paths immediately.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {PROOF_TRANSACTIONS.map((proof) => (
+            <a
+              key={proof.txHash}
+              href={mantlescanTxUrl(proof.txHash)}
+              target="_blank"
+              rel="noreferrer"
+              className="group rounded-lg border border-white/10 bg-black/15 p-3 transition hover:border-blue-300/35 hover:bg-white/[0.055]"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold text-white">{proof.label}</span>
+                <ExternalLink className="size-4 text-blue-200 transition group-hover:translate-x-0.5" />
+              </div>
+              <p className="mt-2 text-xs leading-5 text-muted">{proof.detail}</p>
+              <p className="mt-3 font-mono text-[11px] text-slate-400">{shortHash(proof.txHash)}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RwaCompliancePanel({ complianceChecks }: { complianceChecks: RwaComplianceCheck[] }) {
+  const testnetMirrorAddress = sentinelContracts.testnetRwa ? shortHash(sentinelContracts.testnetRwa) : "Set VITE_TESTNET_RWA_ADDRESS";
+
+  return (
+    <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="rounded-lg border border-white/10 bg-black/15 p-4">
+        <div className="flex items-center gap-2">
+          <Landmark className="size-4 text-mantle" />
+          <p className="text-sm font-semibold text-white">RWA asset evidence</p>
+        </div>
+        <div className="mt-3 grid gap-2">
+          {rwaAssetEvidence.map((item) => (
+            <div key={item.label} className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-xs uppercase tracking-[0.14em] text-muted">{item.label}</span>
+                <span className="text-sm font-medium text-white">{item.value}</span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-400">{item.detail}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 rounded-md border border-mantle/20 bg-mantle/[0.055] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-mantle">Asset passport</span>
+            <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 font-mono text-[11px] text-slate-300">
+              {rwaAssetPassport.passportVersion}
+            </span>
+          </div>
+          <div className="mt-3 grid gap-2 text-xs leading-5 text-slate-300 sm:grid-cols-2">
+            <span>Reference: {rwaAssetPassport.referenceAsset}</span>
+            <span>Issuer: {rwaAssetPassport.issuer}</span>
+            <span>Mirror: {rwaAssetPassport.testnetSymbol} / {testnetMirrorAddress}</span>
+            <span>Oracle: {shortHash(rwaAssetPassport.referenceOracleAddress)}</span>
+          </div>
+          <p className="mt-2 border-t border-white/10 pt-2 text-xs leading-5 text-slate-400">
+            {rwaAssetPassport.mirrorNotice}
+          </p>
+        </div>
+      </div>
+      <div className="rounded-lg border border-white/10 bg-black/15 p-4">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="size-4 text-mantle" />
+          <p className="text-sm font-semibold text-white">Compliance-aware execution gate</p>
+        </div>
+        <div className="mt-3 grid gap-2">
+          {complianceChecks.map((check) => (
+            <ComplianceCheckRow key={check.label} check={check} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComplianceCheckRow({ check }: { check: RwaComplianceCheck }) {
+  const tone =
+    check.status === "Cleared"
+      ? "border-mantle/25 bg-mantle/10 text-mantle"
+      : check.status === "Blocked"
+        ? "border-danger/25 bg-danger/10 text-danger"
+        : "border-blue-300/25 bg-blue-300/10 text-blue-200";
+
+  return (
+    <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-white">{check.label}</p>
+          <p className="mt-1 text-xs leading-5 text-muted">{check.evidence}</p>
+        </div>
+        <span className={`w-fit rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${tone}`}>
+          {check.status}
+        </span>
+      </div>
+      <div className="mt-3 grid gap-2 border-t border-white/10 pt-3 text-xs leading-5 text-slate-400 sm:grid-cols-2">
+        <span><span className="text-slate-300">Rule:</span> {check.requirement}</span>
+        <span><span className="text-slate-300">Input:</span> {check.input}</span>
+      </div>
+      <p className="mt-2 border-t border-white/10 pt-2 text-xs leading-5 text-slate-400">{check.detail}</p>
     </div>
   );
 }
@@ -1432,6 +1894,7 @@ function AiRecommendation({
   simulationStatus,
   contractsConfigured,
   signalEngine,
+  complianceChecks,
   marketSignals,
   txPending,
   onApproveRecommendation,
@@ -1443,6 +1906,7 @@ function AiRecommendation({
   simulationStatus: SimulationStatus;
   contractsConfigured: boolean;
   signalEngine: TreasurySignalEngine;
+  complianceChecks: RwaComplianceCheck[];
   marketSignals: MarketSignalMap;
   txPending: boolean;
   onApproveRecommendation: () => void;
@@ -1551,6 +2015,7 @@ function AiRecommendation({
           <InlineSignal label="Stance" value={formatTreasuryPosture(signalEngine.posture)} state={postureToState(signalEngine.posture)} />
           <InlineSignal label="Efficiency" value={`${signalEngine.allocationEfficiency}%`} state={scoreToState(signalEngine.allocationEfficiency)} />
         </div>
+        <PolicyCheckSequence status={simulationStatus.kind} />
         {Object.values(governanceCommentary).length > 0 ? (
           <div className="mt-4 rounded-md border border-white/10 bg-black/15 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1580,6 +2045,7 @@ function AiRecommendation({
             </p>
           </div>
         ) : null}
+        <AuditPacketPreview recommendation={safeRecommendation} signalEngine={signalEngine} complianceChecks={complianceChecks} />
         <div className="mt-5 grid gap-3">
           {safeRecommendation && safeMarketSignal ? <RecommendationRow recommendation={safeRecommendation} marketSignal={safeMarketSignal} /> : null}
           {blockedRecommendation ? <RecommendationRow recommendation={blockedRecommendation} marketSignal={marketSignals[blockedRecommendation.to] ?? seededMarketSignals[blockedRecommendation.to]} /> : null}
@@ -1593,7 +2059,7 @@ function AiRecommendation({
                   ? txPending
                     ? "Awaiting Confirmation"
                     : "Review Wallet"
-                  : "Approve Recommendation"
+                  : "Approve RWA Allocation"
             }
             tone="primary"
             disabled={Boolean(pendingAction) || safeExecuted}
@@ -1601,7 +2067,7 @@ function AiRecommendation({
             onClick={onApproveRecommendation}
           />
           <ActionButton
-            label={pendingAction === "unsafe" ? (txPending ? "Awaiting Verdict" : "Review Wallet") : "Test Mandate Block"}
+            label={pendingAction === "unsafe" ? (txPending ? "Awaiting Verdict" : "Review Wallet") : "Test Compliance Block"}
             tone="danger"
             disabled={Boolean(pendingAction)}
             loading={pendingAction === "unsafe"}
@@ -1650,13 +2116,220 @@ function buildRecommendationRationaleContext(
     policyStatus: formatPolicyStatus(targetStrategy.status),
     liquidityCondition: targetStrategy.liquidity,
     reservePosture,
-    apyContext: `${formatApy(marketSignal.apy)} APY, ${marketSignalStatusLabel(marketSignal.status).toLowerCase()}, context only`,
+    apyContext: `${formatApy(marketSignal.apy)} APY, ${marketSignalStatusLabel(marketSignal.status).toLowerCase()}, scoring input`,
     recommendation: `${recommendation.amount} allocation from ${recommendation.from} to ${recommendation.to}`,
     expectedImpact: recommendation.expectedImpact,
   };
 }
 
+function PolicyCheckSequence({ status }: { status: SimulationStatus["kind"] }) {
+  const steps = [
+    { label: "RWA screen", state: "Asset fit", tone: "text-mantle" },
+    { label: "Compliance gate", state: "Eligibility", tone: "text-blue-200" },
+    { label: "Policy check", state: "Mandate", tone: "text-mantle" },
+    { label: "Audit hash", state: "Evidence", tone: "text-blue-200" },
+    {
+      label: status === "blocked" ? "Blocked verdict" : "Wallet execution",
+      state: status === "success" ? "Confirmed" : status === "blocked" ? "Stopped" : "Ready",
+      tone: status === "blocked" ? "text-danger" : "text-mantle",
+    },
+  ];
+
+  return (
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={{
+        hidden: {},
+        show: { transition: { staggerChildren: 0.12, delayChildren: 0.08 } },
+      }}
+      className="mt-4 rounded-md border border-white/10 bg-black/15 p-3"
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted">
+          <ShieldCheck className="size-3.5 text-mantle" />
+          Policy check sequence
+        </div>
+        <span className="text-[11px] text-slate-400">{status === "checking" ? "Running" : "Ready"}</span>
+      </div>
+      <div className="grid gap-2 min-[520px]:grid-cols-5">
+        {steps.map((step, index) => (
+          <motion.div
+            key={step.label}
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              show: { opacity: 1, y: 0 },
+            }}
+            className="relative overflow-hidden rounded-md border border-white/10 bg-white/[0.035] p-3"
+          >
+            <motion.span
+              aria-hidden="true"
+              initial={{ x: "-120%" }}
+              animate={{ x: "120%" }}
+              transition={{ duration: 1.7, repeat: Infinity, delay: index * 0.2, ease: "easeInOut" }}
+              className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+            />
+            <span className={`relative text-[11px] font-semibold uppercase tracking-[0.14em] ${step.tone}`}>
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <p className="relative mt-2 text-xs font-medium text-white">{step.label}</p>
+            <p className="relative mt-1 text-[11px] text-muted">{step.state}</p>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function AuditPacketPreview({
+  recommendation,
+  signalEngine,
+  complianceChecks,
+}: {
+  recommendation: RecommendationSignal | undefined;
+  signalEngine: TreasurySignalEngine;
+  complianceChecks: RwaComplianceCheck[];
+}) {
+  const [copied, setCopied] = useState(false);
+
+  if (!recommendation) return null;
+
+  const previewId = `${recommendation.id}-preview`;
+  const previewEvidence = buildRwaEvidenceBundle(recommendation, complianceChecks, signalEngine);
+  const previewPacket = buildAuditEvidencePacket("approved", previewId, recommendation, signalEngine, complianceChecks, previewEvidence, "wallet-submission-time");
+  const previewHash = keccak256(stringToHex(previewPacket));
+  const clearedChecks = complianceChecks.filter((check) => check.status === "Cleared" || check.status === "Monitored").length;
+  const blockedChecks = complianceChecks.filter((check) => check.status === "Blocked").length;
+
+  const copyPacket = async () => {
+    try {
+      await navigator.clipboard.writeText(previewPacket);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  const downloadPacket = () => {
+    const blob = new Blob([previewPacket], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${previewId}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="mt-4 rounded-md border border-blue-300/20 bg-blue-300/[0.055] p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-blue-200">
+          <FileClock className="size-3.5" />
+          Audit packet preview
+        </div>
+        <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 font-mono text-[11px] text-slate-300">
+          <ResolvingHash hash={previewHash} />
+        </span>
+      </div>
+      <div className="mt-3 grid gap-2 text-xs leading-5 text-muted sm:grid-cols-2">
+        <span>Policy: rwa-treasury-policy-v0.3</span>
+        <span>Recommendation: {previewId}</span>
+        <span>Target: {recommendation.to}</span>
+        <span>Confidence: {recommendation.confidence}%</span>
+        <span>Compliance checks: {clearedChecks} reviewable / {blockedChecks} blocked path</span>
+        <span>Passport: {shortHash(previewEvidence.assetPassportHash)}</span>
+        <span>AI attestation: {shortHash(previewEvidence.complianceAttestationHash)}</span>
+        <span>Audit hash: generated when wallet submits</span>
+      </div>
+      <div className="mt-3 rounded-md border border-white/10 bg-black/15 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted">AI compliance attestation</span>
+          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${
+            previewEvidence.complianceAttestation.verdict === "block"
+              ? "border-danger/25 bg-danger/10 text-danger"
+              : previewEvidence.complianceAttestation.verdict === "monitor"
+                ? "border-blue-300/25 bg-blue-300/10 text-blue-200"
+                : "border-mantle/25 bg-mantle/10 text-mantle"
+          }`}>
+            {previewEvidence.complianceAttestation.verdict}
+          </span>
+        </div>
+        <p className="mt-2 text-xs leading-5 text-slate-300">{previewEvidence.complianceAttestation.summary}</p>
+        {previewEvidence.complianceAttestation.flags.length > 0 ? (
+          <p className="mt-2 text-[11px] leading-5 text-muted">
+            Flags: {previewEvidence.complianceAttestation.flags.join(" / ")}
+          </p>
+        ) : null}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
+        <button
+          type="button"
+          onClick={copyPacket}
+          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-blue-300/35 hover:bg-white/[0.055]"
+        >
+          <Copy className="size-3.5" />
+          {copied ? "Copied packet" : "Copy packet JSON"}
+        </button>
+        <button
+          type="button"
+          onClick={downloadPacket}
+          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-blue-300/35 hover:bg-white/[0.055]"
+        >
+          <Download className="size-3.5" />
+          Download JSON
+        </button>
+      </div>
+      <p className="mt-2 text-xs leading-5 text-slate-400">
+        The contract receives the bytes32 hash. This exported packet is the human-readable evidence judges can hash again to verify the anchor.
+      </p>
+    </div>
+  );
+}
+
+function ResolvingHash({ hash }: { hash: Hex }) {
+  const target = shortHash(hash);
+  const [display, setDisplay] = useState(target);
+
+  useEffect(() => {
+    const glyphs = "0123456789abcdef";
+    let tick = 0;
+    const maxTicks = 14;
+
+    setDisplay(
+      target
+        .split("")
+        .map((char) => (char === "." || char === "x" ? char : glyphs[Math.floor(Math.random() * glyphs.length)]))
+        .join(""),
+    );
+
+    const interval = window.setInterval(() => {
+      tick += 1;
+      setDisplay(
+        target
+          .split("")
+          .map((char, index) => {
+            if (char === "." || char === "x") return char;
+            if (index < tick || tick >= maxTicks) return char;
+            return glyphs[Math.floor(Math.random() * glyphs.length)];
+          })
+          .join(""),
+      );
+
+      if (tick >= maxTicks) {
+        window.clearInterval(interval);
+      }
+    }, 42);
+
+    return () => window.clearInterval(interval);
+  }, [target]);
+
+  return <span>{display}</span>;
+}
+
 function PolicyControls() {
+  const policyComplianceChecks = evaluateRwaComplianceChecks();
+
   return (
     <Panel title="Policy/risk controls" action="Enforced before execution">
       <div className="grid gap-3">
@@ -1672,6 +2345,26 @@ function PolicyControls() {
             </div>
           </div>
         ))}
+      </div>
+      <div className="mt-5 border-t border-white/10 pt-5">
+        <div className="mb-3 flex items-center gap-2">
+          <ShieldCheck className="size-4 text-mantle" />
+          <p className="text-sm font-semibold text-white">RWA compliance overlays</p>
+        </div>
+        <div className="grid gap-2">
+          {policyComplianceChecks.map((check) => (
+            <div key={check.label} className="flex flex-col gap-2 rounded-md border border-white/10 bg-black/15 p-3 min-[520px]:flex-row min-[520px]:items-start min-[520px]:justify-between">
+              <div>
+                <p className="text-sm font-medium text-white">{check.label}</p>
+                <p className="mt-1 text-xs leading-5 text-muted">{check.evidence}</p>
+                <p className="mt-1 text-[11px] leading-5 text-slate-400">Input: {check.input}</p>
+              </div>
+              <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+                {check.status}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </Panel>
   );
@@ -1818,7 +2511,7 @@ function RecommendationRow({
         <p className="text-sm leading-6 text-slate-200">{recommendation.why}</p>
         <div className="mt-3">
           <ExplainabilityLine label="Conditions" value={recommendation.conditions.join(" / ")} />
-          <ExplainabilityLine label="Market signal" value={`${marketSignalStatusLabel(marketSignal.status)}: ${formatApy(marketSignal.apy)} APY / ${formatCurrency(marketSignal.tvlUsd)} TVL-style metric / Updated ${marketSignal.lastUpdated} / Context only`} />
+          <ExplainabilityLine label="Market signal" value={`${marketSignalStatusLabel(marketSignal.status)}: ${formatApy(marketSignal.apy)} APY / ${formatCurrency(marketSignal.tvlUsd)} TVL-style metric / Updated ${marketSignal.lastUpdated} / Scoring input`} />
           <ExplainabilityLine label="Policy validation" value={recommendation.policyConstraints.join(" / ")} />
           <ExplainabilityLine label="Expected impact" value={recommendation.expectedImpact} />
           <ExplainabilityLine label="Signal posture" value={`${formatTreasuryPosture(recommendation.postureLabel)} / ${recommendation.signalState}`} />
@@ -1903,19 +2596,47 @@ function MantlescanTxLink({ txHash, className = "" }: { txHash: Hex; className?:
   );
 }
 
-function PolicyStep({ index, label, state }: { index: string; label: string; state: string }) {
+function PolicyStep({
+  index,
+  label,
+  state,
+  active = false,
+  final = false,
+}: {
+  index: string;
+  label: string;
+  state: string;
+  active?: boolean;
+  final?: boolean;
+}) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -8 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      className="relative flex flex-col gap-3 rounded-md border border-white/10 bg-white/[0.035] p-3 min-[460px]:flex-row min-[460px]:items-center min-[460px]:justify-between"
+      variants={{
+        hidden: { opacity: 0, x: -12 },
+        show: { opacity: 1, x: 0 },
+      }}
+      className={`relative overflow-hidden rounded-md border p-3 min-[460px]:flex min-[460px]:items-center min-[460px]:justify-between ${
+        final
+          ? "border-danger/25 bg-danger/10"
+          : active
+            ? "border-mantle/20 bg-mantle/[0.055]"
+            : "border-white/10 bg-white/[0.035]"
+      }`}
     >
+      {active ? (
+        <motion.span
+          aria-hidden="true"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="absolute inset-x-0 top-0 h-px origin-left bg-gradient-to-r from-mantle via-blue-200 to-transparent"
+        />
+      ) : null}
       <div className="flex items-center gap-3">
-        <span className="flex size-7 items-center justify-center rounded-md border border-white/10 bg-black/20 text-[11px] text-mantle">{index}</span>
+        <span className={`flex size-7 items-center justify-center rounded-md border border-white/10 bg-black/20 text-[11px] ${final ? "text-danger" : "text-mantle"}`}>{index}</span>
         <span className="text-sm text-slate-300">{label}</span>
       </div>
-      <span className="w-fit rounded-full bg-white/[0.06] px-2.5 py-1 text-xs text-white">{state}</span>
+      <span className={`mt-3 w-fit rounded-full px-2.5 py-1 text-xs min-[460px]:mt-0 ${final ? "bg-danger/15 text-danger" : "bg-white/[0.06] text-white"}`}>{state}</span>
     </motion.div>
   );
 }
@@ -2074,6 +2795,89 @@ function hydrateSeededDecisionTimeline(decisions: Decision[]) {
       time: formatAuditDateTime(new Date(now.getTime() - decision.seededOffsetMinutes * 60_000)),
     };
   });
+}
+
+function buildAuditEvidencePacket(
+  verdict: "approved" | "blocked",
+  recommendationId: string,
+  recommendation: RecommendationSignal | undefined,
+  signalEngine: TreasurySignalEngine,
+  complianceChecks: RwaComplianceCheck[],
+  rwaEvidence: RwaEvidenceBundle,
+  generatedAt = new Date().toISOString(),
+) {
+  const targetSignal = recommendation ? signalEngine.strategySignalMap[recommendation.to] : undefined;
+
+  return JSON.stringify({
+    schema: "sentinel.audit.v1",
+    recommendationId,
+    verdict,
+    generatedAt,
+    policyVersion: "rwa-treasury-policy-v0.3",
+    rwaEvidence: {
+      assetId: rwaEvidence.assetPassport.assetId,
+      referenceAsset: rwaEvidence.assetPassport.referenceAsset,
+      referenceNetwork: rwaEvidence.assetPassport.referenceNetwork,
+      testnetMirror: rwaEvidence.assetPassport.displayName,
+      assetPassportHash: rwaEvidence.assetPassportHash,
+      complianceAttestationHash: rwaEvidence.complianceAttestationHash,
+      mirrorNotice: rwaEvidence.assetPassport.mirrorNotice,
+    },
+    recommendation: recommendation
+      ? {
+          from: recommendation.from,
+          to: recommendation.to,
+          amount: recommendation.amount,
+          status: recommendation.status,
+          confidence: recommendation.confidence,
+          rationale: recommendation.why,
+          constraints: recommendation.policyConstraints,
+          expectedImpact: recommendation.expectedImpact,
+          marketSignal: targetSignal
+            ? {
+                yield: targetSignal.marketYield,
+                status: targetSignal.marketStatus,
+                source: targetSignal.marketSource,
+                tvlUsd: targetSignal.marketTvlUsd,
+              }
+            : null,
+        }
+      : null,
+    portfolioSignal: {
+      posture: signalEngine.posture,
+      confidence: signalEngine.confidence,
+      state: signalEngine.signalState,
+      allocationEfficiency: signalEngine.allocationEfficiency,
+    },
+    complianceControls: complianceChecks.map((check) => ({
+      ruleId: check.ruleId,
+      label: check.label,
+      status: check.status,
+      requirement: check.requirement,
+      input: check.input,
+      evidence: check.evidence,
+    })),
+    aiComplianceAttestation: rwaEvidence.complianceAttestation,
+  });
+}
+
+function buildRwaEvidenceBundle(
+  recommendation: RecommendationSignal | undefined,
+  complianceChecks: RwaComplianceCheck[],
+  signalEngine: TreasurySignalEngine,
+): RwaEvidenceBundle {
+  const assetPassportJson = JSON.stringify(rwaAssetPassport);
+  const complianceAttestation = buildAiComplianceAttestation(recommendation, complianceChecks, signalEngine, rwaAssetPassport);
+  const complianceAttestationJson = JSON.stringify(complianceAttestation);
+
+  return {
+    assetPassport: rwaAssetPassport,
+    assetPassportJson,
+    assetPassportHash: keccak256(stringToHex(assetPassportJson)),
+    complianceAttestation,
+    complianceAttestationJson,
+    complianceAttestationHash: keccak256(stringToHex(complianceAttestationJson)),
+  };
 }
 
 function currentTime() {

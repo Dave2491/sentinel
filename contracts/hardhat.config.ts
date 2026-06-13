@@ -6,7 +6,7 @@ dotenv.config();
 
 const mantleSepoliaRpcUrl = process.env.MANTLE_SEPOLIA_RPC_URL ?? "https://rpc.sepolia.mantle.xyz";
 const privateKey = process.env.PRIVATE_KEY;
-const etherscanApiKey = process.env.MANTLESCAN_API_KEY ?? process.env.ETHERSCAN_API_KEY ?? "";
+const etherscanApiKey = process.env.ETHERSCAN_API_KEY ?? process.env.MANTLESCAN_API_KEY ?? "";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -29,9 +29,9 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: {
-      mantleSepolia: etherscanApiKey,
-    },
+    // A single string makes @nomicfoundation/hardhat-verify use Etherscan API V2.
+    // Network-specific keys force the deprecated explorer V1 endpoint.
+    apiKey: etherscanApiKey,
     customChains: [
       {
         network: "mantleSepolia",

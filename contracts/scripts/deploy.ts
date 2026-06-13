@@ -9,6 +9,11 @@ async function main() {
   const mockUSDC = await MockUSDC.deploy(deployer.address, { nonce: nonce++ });
   await mockUSDC.waitForDeployment();
 
+  const initialAssetPassportHash = ethers.id("sentinel:ondo-usdy-mantle-passport:v1");
+  const TestnetUSDY = await ethers.getContractFactory("TestnetUSDY");
+  const testnetUSDY = await TestnetUSDY.deploy(deployer.address, initialAssetPassportHash, { nonce: nonce++ });
+  await testnetUSDY.waitForDeployment();
+
   const ExecutionGuard = await ethers.getContractFactory("ExecutionGuard");
   const executionGuard = await ExecutionGuard.deploy(deployer.address, { nonce: nonce++ });
   await executionGuard.waitForDeployment();
@@ -40,6 +45,7 @@ async function main() {
   await executionGuard.setStrategyPolicy(await unsafeStrategy.getAddress(), true, 1_000, { nonce: nonce++ });
 
   console.log("MockUSDC:", await mockUSDC.getAddress());
+  console.log("TestnetUSDY:", await testnetUSDY.getAddress());
   console.log("ExecutionGuard:", await executionGuard.getAddress());
   console.log("StrategyVault:", await strategyVault.getAddress());
   console.log("SentinelAgentIdentity:", await agentIdentity.getAddress());
@@ -48,6 +54,7 @@ async function main() {
 
   console.log("\nFrontend env:");
   console.log(`VITE_MOCK_USDC_ADDRESS=${await mockUSDC.getAddress()}`);
+  console.log(`VITE_TESTNET_RWA_ADDRESS=${await testnetUSDY.getAddress()}`);
   console.log(`VITE_EXECUTION_GUARD_ADDRESS=${await executionGuard.getAddress()}`);
   console.log(`VITE_STRATEGY_VAULT_ADDRESS=${await strategyVault.getAddress()}`);
   console.log(`VITE_SENTINEL_AGENT_IDENTITY_ADDRESS=${await agentIdentity.getAddress()}`);
