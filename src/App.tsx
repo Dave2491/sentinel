@@ -763,7 +763,7 @@ function LandingPage() {
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1 }}
-            className="relative mx-auto h-[260px] w-full max-w-[420px] overflow-hidden sm:h-[360px] sm:max-w-[560px] lg:h-[500px] lg:max-w-[640px] xl:h-[540px] xl:max-w-[680px]"
+            className="relative mx-auto h-[260px] w-full max-w-[420px] overflow-hidden sm:h-[360px] sm:max-w-[560px] lg:h-[430px] lg:max-w-[560px] xl:h-[460px] xl:max-w-[600px]"
           >
             <MantleVaultScene />
             <div className="pointer-events-none absolute inset-x-0 bottom-3 h-20 bg-[radial-gradient(ellipse_at_center,rgba(220,231,244,0.12),transparent_62%)] blur-xl lg:bottom-16" />
@@ -774,7 +774,7 @@ function LandingPage() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.65, delay: 0.35 }}
-          className="relative z-10"
+          className="relative z-10 mt-6 lg:mt-2"
         >
           <ProductGlimpse totalValue={totalValue} />
         </motion.div>
@@ -1522,14 +1522,14 @@ function MantleVaultScene() {
     for (let index = 0; index < 8; index += 1) {
       const angle = (index / 8) * Math.PI * 2;
       const node = new THREE.Mesh(new THREE.SphereGeometry(0.035, 18, 18), auditMaterial);
-      node.position.set(Math.cos(angle) * 1.82, Math.sin(angle) * 1.02, index % 2 === 0 ? 0.32 : -0.12);
+      node.position.set(Math.cos(angle) * 1.58, Math.sin(angle) * 0.88, index % 2 === 0 ? 0.28 : -0.1);
       nodes.add(node);
     }
     group.add(nodes);
 
     const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x46d4a8, transparent: true, opacity: 0.2 });
     const orbit = new THREE.Mesh(
-      new THREE.TorusGeometry(1.84, 0.006, 8, 160),
+      new THREE.TorusGeometry(1.6, 0.006, 8, 160),
       orbitMaterial,
     );
     orbit.scale.y = 0.56;
@@ -1574,16 +1574,16 @@ function MantleVaultScene() {
       const compact = width < 520;
       const midSize = width >= 520 && width < 900;
 
-      camera.fov = compact ? 46 : midSize ? 42 : 40;
-      camera.position.set(0, compact ? 0.06 : 0.12, compact ? 6.4 : midSize ? 6.1 : 6.7);
+      camera.fov = compact ? 46 : midSize ? 42 : 36;
+      camera.position.set(0, compact ? 0.06 : 0.08, compact ? 6.4 : midSize ? 6.6 : 9.4);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, compact ? 1.5 : 2));
       renderer.setSize(width, height, false);
-      baseScale = compact ? 0.68 : midSize ? 0.82 : 0.74;
+      baseScale = compact ? 0.68 : midSize ? 0.72 : 0.58;
       group.scale.setScalar(baseScale);
-      baseGroupX = compact ? 0 : midSize ? -0.12 : -0.42;
-      baseGroupY = compact ? -0.08 : midSize ? -0.03 : -0.04;
+      baseGroupX = compact ? 0 : midSize ? -0.08 : -0.16;
+      baseGroupY = compact ? -0.08 : midSize ? -0.03 : -0.02;
       floor.visible = !compact;
     };
 
@@ -1625,7 +1625,7 @@ function MantleVaultScene() {
       group.rotation.z = 0.05 + Math.sin(elapsed * 0.2) * 0.025 + smoothPointerX * 0.03;
       group.position.x = baseGroupX + smoothPointerX * 0.08;
       group.position.y = baseGroupY + Math.sin(elapsed * 0.7) * (width < 520 ? 0.04 : 0.065) - smoothPointerY * 0.04;
-      group.scale.setScalar(baseScale + hoverAmount * 0.035);
+      group.scale.setScalar(baseScale + hoverAmount * 0.02);
       nodes.rotation.z = elapsed * (0.22 + hoverAmount * 0.28);
       mantleLight.intensity = 18 + hoverAmount * 8;
       blueLight.intensity = 6 + hoverAmount * 4;
