@@ -779,6 +779,7 @@ function LandingPage() {
           <ProductGlimpse totalValue={totalValue} />
         </motion.div>
       </section>
+      <EcosystemAttribution />
     </>
   );
 }
@@ -1291,12 +1292,47 @@ function Logo() {
 function EcosystemAttribution() {
   return (
     <footer className="mx-auto max-w-7xl px-4 pb-8 sm:px-8">
-      <div className="flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-muted min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
-        <span>Policy-aware treasury execution on Mantle Sepolia</span>
-        <span className="inline-flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-slate-300">
-          <MantleGlyph />
-          Built on Mantle
-        </span>
+      <div className="border-t border-white/10 pt-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-[#0b1110] shadow-premium">
+              <img src={sentinelLogoUrl} alt="Sentinel" className="size-8 object-contain opacity-95 brightness-125 contrast-125" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Sentinel</p>
+              <p className="mt-1 text-xs text-muted">AI-assisted RWA treasury execution on Mantle Sepolia.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <a
+              href="https://github.com/Dave2491/sentinel"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-mantle/30 hover:text-white"
+            >
+              GitHub
+              <ExternalLink className="size-3.5" />
+            </a>
+            <a
+              href="https://x.com/0xSoje"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-mantle/30 hover:text-white"
+            >
+              X
+              <ExternalLink className="size-3.5" />
+            </a>
+            <span className="inline-flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-300">
+              <MantleGlyph />
+              Mantle Turing Test Hackathon 2026
+            </span>
+          </div>
+        </div>
+        <div className="mt-5 flex flex-col gap-2 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+          <span>Policy-aware treasury execution with verifiable Mantle proof.</span>
+          <span>© 2026 Sentinel. Open-source hackathon build.</span>
+        </div>
       </div>
     </footer>
   );
