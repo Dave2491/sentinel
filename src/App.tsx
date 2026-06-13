@@ -1410,7 +1410,7 @@ function MantleVaultScene() {
     host.appendChild(renderer.domElement);
 
     const group = new THREE.Group();
-    group.rotation.set(-0.16, -0.56, 0.08);
+    group.rotation.set(-0.14, -0.34, 0.06);
     scene.add(group);
 
     scene.add(new THREE.AmbientLight(0xdce7f4, 0.22));
@@ -1467,8 +1467,8 @@ function MantleVaultScene() {
         map: texture,
         transparent: true,
         opacity: 0.94,
-        blending: THREE.AdditiveBlending,
         depthWrite: false,
+        side: THREE.DoubleSide,
       }),
     );
     logo.position.z = 0.205;
@@ -1546,9 +1546,9 @@ function MantleVaultScene() {
     const clock = new THREE.Clock();
     const animate = () => {
       const elapsed = clock.getElapsedTime();
-      group.rotation.y = -0.56 + Math.sin(elapsed * 0.25) * 0.16 + elapsed * 0.09;
-      group.rotation.x = -0.16 + Math.sin(elapsed * 0.34) * 0.06;
-      group.rotation.z = 0.08 + Math.sin(elapsed * 0.2) * 0.035;
+      group.rotation.y = -0.34 + Math.sin(elapsed * 0.25) * 0.12 + elapsed * 0.055;
+      group.rotation.x = -0.14 + Math.sin(elapsed * 0.34) * 0.045;
+      group.rotation.z = 0.06 + Math.sin(elapsed * 0.2) * 0.03;
       group.position.y = baseGroupY + Math.sin(elapsed * 0.7) * (width < 520 ? 0.045 : 0.08);
       nodes.rotation.z = elapsed * 0.24;
       renderer.render(scene, camera);
@@ -1577,7 +1577,7 @@ function MantleVaultScene() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(70,212,168,0.2),transparent_32%),radial-gradient(circle_at_72%_42%,rgba(220,231,244,0.1),transparent_38%)] sm:bg-[radial-gradient(circle_at_56%_48%,rgba(70,212,168,0.18),transparent_28%),radial-gradient(circle_at_72%_42%,rgba(220,231,244,0.1),transparent_34%)]" />
       <div ref={hostRef} className="absolute inset-0" aria-hidden="true" />
       <div className="pointer-events-none absolute bottom-10 left-1/2 hidden -translate-x-1/2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-400 backdrop-blur md:block">
-        Policy token rotating live
+        Mantle RWA proof layer
       </div>
     </div>
   );
