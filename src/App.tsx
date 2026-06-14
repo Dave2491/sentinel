@@ -714,6 +714,7 @@ function LandingPage() {
     <>
       <LandingHeader />
       <section className="relative mx-auto min-h-[calc(100vh-80px)] max-w-7xl px-4 pb-14 pt-5 sm:px-8 sm:pb-20 lg:pb-20">
+        <div className="pointer-events-none absolute left-1/2 top-10 h-72 w-[min(92vw,920px)] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(70,212,168,0.12),rgba(125,167,255,0.06)_38%,transparent_70%)] blur-3xl" />
         <div className="grid min-h-[min(680px,calc(100vh-150px))] items-center gap-8 lg:grid-cols-[0.98fr_1.02fr]">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -721,11 +722,11 @@ function LandingPage() {
             transition={{ duration: 0.7 }}
             className="relative z-10 max-w-3xl text-center sm:text-left"
           >
-            <div className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-white/12 bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-slate-200 shadow-premium backdrop-blur-xl">
+            <div className="glass-chip mb-6 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-slate-200">
               <BrainCircuit className="size-3.5 text-mantle" />
               <span className="truncate">AI x RWA treasury execution on Mantle</span>
             </div>
-            <h1 className="hero-display text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-white sm:text-[7.25rem] lg:text-[7.25rem] xl:text-[7.9rem]">
+            <h1 className="hero-display bg-[linear-gradient(180deg,#ffffff_8%,#dce7f4_48%,#9fb0c8_100%)] bg-clip-text text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-transparent drop-shadow-[0_22px_60px_rgba(220,231,244,0.12)] sm:text-[7.25rem] lg:text-[7.25rem] xl:text-[7.9rem]">
               Sentinel
             </h1>
             <p className="mx-auto mt-7 max-w-2xl text-xl leading-8 text-slate-100 sm:mx-0 sm:text-2xl">
@@ -742,7 +743,7 @@ function LandingPage() {
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
                 to="/dashboard"
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-frost px-5 py-3 text-sm font-semibold text-ink shadow-[0_16px_45px_rgba(220,231,244,0.16)] transition hover:-translate-y-0.5 hover:bg-white sm:w-auto"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-frost px-5 py-3 text-sm font-semibold text-ink shadow-[0_16px_45px_rgba(220,231,244,0.16)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_64px_rgba(220,231,244,0.24)] sm:w-auto"
               >
                 Launch Treasury
                 <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
@@ -751,7 +752,7 @@ function LandingPage() {
                 href={mantlescanTxUrl(PROOF_TRANSACTIONS[0].txHash)}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-mantle/35 hover:bg-white/[0.06] sm:w-auto"
+                className="glass-button inline-flex w-full items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-slate-200 transition hover:-translate-y-0.5 hover:border-mantle/35 hover:text-white sm:w-auto"
               >
                 View Proof
                 <ExternalLink className="size-4" />
@@ -763,7 +764,7 @@ function LandingPage() {
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1 }}
-            className="relative mx-auto h-[220px] w-full max-w-[340px] overflow-hidden sm:h-[300px] sm:max-w-[470px] md:h-[340px] md:max-w-[520px] lg:h-[470px] lg:max-w-[560px] xl:h-[500px] xl:max-w-[600px]"
+            className="glass-panel relative mx-auto h-[220px] w-full max-w-[340px] rounded-2xl sm:h-[300px] sm:max-w-[470px] md:h-[340px] md:max-w-[520px] lg:h-[470px] lg:max-w-[560px] xl:h-[500px] xl:max-w-[600px]"
           >
             <MantleVaultScene />
             <div className="pointer-events-none absolute inset-x-0 bottom-3 h-20 bg-[radial-gradient(ellipse_at_center,rgba(220,231,244,0.12),transparent_62%)] blur-xl lg:bottom-16" />
@@ -1148,15 +1149,17 @@ function ProductShell({ children }: { children: ReactNode }) {
 
 function LandingHeader() {
   return (
-    <header className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8 sm:py-5">
-      <Logo />
-      <Link
-        to="/dashboard"
-        className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-mantle/30 hover:bg-white/[0.06] hover:text-white sm:px-4"
-      >
-        <span>Dashboard</span>
-        <ArrowRight className="size-4" />
-      </Link>
+    <header className="sticky top-3 z-30 mx-auto max-w-7xl px-4 py-4 sm:px-8 sm:py-5">
+      <div className="glass-panel flex items-center justify-between rounded-2xl px-3 py-3 sm:px-4">
+        <Logo />
+        <Link
+          to="/dashboard"
+          className="glass-button inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-200 transition hover:-translate-y-0.5 hover:border-mantle/30 hover:text-white sm:px-4"
+        >
+          <span>Dashboard</span>
+          <ArrowRight className="size-4" />
+        </Link>
+      </div>
     </header>
   );
 }
@@ -1174,7 +1177,7 @@ function AppHeader() {
   const activeItem = navItems.find((item) => item.to === location.pathname);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-white/10 bg-ink/82 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 border-b border-white/10 bg-ink/60 shadow-[0_18px_58px_rgba(0,0,0,0.26)] backdrop-blur-2xl">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8 lg:py-4">
         <div className="flex items-center justify-between gap-3">
           <Logo />
@@ -1292,7 +1295,7 @@ function Logo() {
 function EcosystemAttribution() {
   return (
     <footer className="mx-auto max-w-7xl px-4 pb-8 sm:px-8">
-      <div className="border-t border-white/10 pt-5">
+      <div className="glass-panel rounded-2xl px-4 py-5 sm:px-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-[#0b1110] shadow-premium">
@@ -1309,7 +1312,7 @@ function EcosystemAttribution() {
               href="https://github.com/Dave2491/sentinel"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-mantle/30 hover:text-white"
+              className="glass-chip inline-flex w-fit items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-mantle/30 hover:text-white"
             >
               GitHub
               <ExternalLink className="size-3.5" />
@@ -1318,12 +1321,12 @@ function EcosystemAttribution() {
               href="https://x.com/0xSoje"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-mantle/30 hover:text-white"
+              className="glass-chip inline-flex w-fit items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-mantle/30 hover:text-white"
             >
               X
               <ExternalLink className="size-3.5" />
             </a>
-            <span className="inline-flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-300">
+            <span className="glass-chip inline-flex w-fit items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-slate-300">
               <MantleGlyph />
               Mantle Turing Test Hackathon 2026
             </span>
@@ -1666,19 +1669,19 @@ function MantleVaultScene() {
 
 function ProductGlimpse({ totalValue }: { totalValue: number }) {
   return (
-    <div className="min-w-0 rounded-xl border border-white/10 bg-[#080b10]/90 p-3 shadow-premium backdrop-blur-xl sm:p-4 lg:grid lg:grid-cols-[0.8fr_1.2fr] lg:gap-4">
+    <div className="glass-panel min-w-0 rounded-2xl p-3 sm:p-4 lg:grid lg:grid-cols-[0.8fr_1.2fr] lg:gap-4">
       <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-muted">Treasury intelligence</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Treasury intelligence</p>
           <p className="mt-2 text-3xl font-semibold text-white">{formatCurrency(totalValue)}</p>
           <p className="mt-2 max-w-sm text-xs leading-5 text-muted">RWA allocation, compliance gate, and audit trail compressed into one judge-ready flow.</p>
         </div>
-        <div className="w-fit rounded-full border border-mantle/20 bg-mantle/10 px-3 py-1 text-xs text-mantle">
+        <div className="glass-chip-active w-fit rounded-full px-3 py-1 text-xs text-mantle">
           Policies active
         </div>
       </div>
       <div className="grid gap-3 pt-4 lg:pt-0">
-        <div className="rounded-md border border-white/10 bg-black/20 p-3">
+        <div className="glass-chip rounded-md p-3">
           <div className="flex items-center justify-between gap-3 text-xs text-muted">
             <span className="inline-flex items-center gap-2">
               <MantleGlyph className="opacity-70" />
@@ -1686,7 +1689,7 @@ function ProductGlimpse({ totalValue }: { totalValue: number }) {
             </span>
             <LiveDot />
           </div>
-          <div className="mt-3 grid h-16 content-center gap-2 rounded bg-[linear-gradient(90deg,rgba(70,212,168,0.08),rgba(125,167,255,0.04),rgba(240,179,93,0.08))] px-3">
+          <div className="mt-3 grid h-16 content-center gap-2 rounded bg-[linear-gradient(90deg,rgba(70,212,168,0.12),rgba(125,167,255,0.06),rgba(240,179,93,0.1))] px-3">
             <PreviewSignalBar label="Reserve floor" width="82%" tone="bg-mantle/70" />
             <PreviewSignalBar label="Duration" width="58%" tone="bg-blue-200/65" />
             <PreviewSignalBar label="High-risk cap" width="34%" tone="bg-danger/70" />
@@ -2739,7 +2742,7 @@ function LogIcon({ severity }: { severity: string }) {
 
 function PreviewRow({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-white/10 bg-white/[0.035] p-3 min-[460px]:flex-row min-[460px]:items-center min-[460px]:justify-between min-[460px]:gap-4">
+    <div className="glass-chip flex flex-col gap-1 rounded-md p-3 min-[460px]:flex-row min-[460px]:items-center min-[460px]:justify-between min-[460px]:gap-4">
       <span className="text-sm text-muted">{label}</span>
       <span className={`text-sm font-medium ${tone}`}>{value}</span>
     </div>
@@ -2784,7 +2787,7 @@ function DemoStep({ number, label }: { number: string; label: string }) {
 
 function MiniSignal({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
   return (
-    <div className={`rounded-lg border p-3 ${emphasized ? "border-mantle/25 bg-mantle/[0.07]" : "border-white/10 bg-white/[0.04]"}`}>
+    <div className={`rounded-lg p-3 ${emphasized ? "glass-chip-active" : "glass-chip"}`}>
       <p className="text-[11px] uppercase tracking-[0.14em] text-muted">{label}</p>
       <p className={`mt-1 text-sm font-semibold ${emphasized ? "text-mantle" : "text-white"}`}>{value}</p>
     </div>
@@ -3106,8 +3109,9 @@ function Background() {
         aria-hidden="true"
         animate={{ opacity: [0.7, 1, 0.7] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_6%,rgba(70,212,168,0.16),transparent_28%),radial-gradient(circle_at_78%_0%,rgba(125,167,255,0.13),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(240,179,93,0.055),transparent_34%),linear-gradient(180deg,#07080d_0%,#0a0d14_48%,#07080d_100%)]"
+        className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_16%_4%,rgba(70,212,168,0.2),transparent_28%),radial-gradient(circle_at_80%_2%,rgba(125,167,255,0.16),transparent_30%),radial-gradient(circle_at_48%_96%,rgba(240,179,93,0.065),transparent_34%),linear-gradient(180deg,#07080d_0%,#0a0d14_48%,#07080d_100%)]"
       />
+      <div className="fixed inset-0 -z-10 bg-[linear-gradient(115deg,transparent_0%,rgba(220,231,244,0.045)_38%,transparent_56%),linear-gradient(70deg,transparent_4%,rgba(70,212,168,0.04)_48%,transparent_68%)]" />
       <div className="fixed inset-0 -z-10 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.7)_1px,transparent_1px)] [background-size:72px_72px]" />
       <div className="noise-layer fixed inset-0 -z-10 opacity-[0.035]" />
     </>

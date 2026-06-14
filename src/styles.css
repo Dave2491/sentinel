@@ -49,6 +49,66 @@ a {
   mix-blend-mode: soft-light;
 }
 
+@layer components {
+  .glass-panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.038) 48%, rgba(70, 212, 168, 0.052)),
+      rgba(8, 11, 16, 0.72);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.11),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+      0 26px 90px rgba(0, 0, 0, 0.46);
+    backdrop-filter: blur(24px) saturate(138%);
+  }
+
+  .glass-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 14% 0%, rgba(220, 231, 244, 0.16), transparent 30%),
+      radial-gradient(circle at 84% 18%, rgba(70, 212, 168, 0.12), transparent 34%);
+    opacity: 0.72;
+  }
+
+  .glass-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .glass-chip {
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.088), rgba(255, 255, 255, 0.032));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 18px 48px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(18px) saturate(130%);
+  }
+
+  .glass-chip-active {
+    border-color: rgba(70, 212, 168, 0.42);
+    background:
+      linear-gradient(135deg, rgba(70, 212, 168, 0.17), rgba(255, 255, 255, 0.035)),
+      rgba(8, 20, 18, 0.62);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 0 44px rgba(70, 212, 168, 0.12);
+  }
+
+  .glass-button {
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 18px 56px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(18px) saturate(132%);
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
