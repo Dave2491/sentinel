@@ -1165,8 +1165,10 @@ function ProductShell({ children }: { children: ReactNode }) {
   return (
     <>
       <AppHeader />
-      {children}
-      <EcosystemAttribution />
+      <div className="pt-[69px] md:pt-[117px] lg:pt-[73px]">
+        {children}
+        <EcosystemAttribution />
+      </div>
     </>
   );
 }
@@ -1201,7 +1203,7 @@ function AppHeader() {
   const activeItem = navItems.find((item) => item.to === location.pathname);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-white/10 bg-ink/60 shadow-[0_18px_58px_rgba(0,0,0,0.26)] backdrop-blur-2xl">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-ink/60 shadow-[0_18px_58px_rgba(0,0,0,0.26)] backdrop-blur-2xl">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8 lg:py-4">
         <div className="flex items-center justify-between gap-3">
           <Logo />
