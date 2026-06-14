@@ -1660,9 +1660,6 @@ function MantleVaultScene() {
     <div className="absolute inset-0">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(70,212,168,0.2),transparent_32%),radial-gradient(circle_at_72%_42%,rgba(220,231,244,0.1),transparent_38%)] sm:bg-[radial-gradient(circle_at_56%_48%,rgba(70,212,168,0.18),transparent_28%),radial-gradient(circle_at_72%_42%,rgba(220,231,244,0.1),transparent_34%)]" />
       <div ref={hostRef} className="absolute inset-0 cursor-pointer" aria-hidden="true" />
-      <div className="pointer-events-none absolute bottom-20 left-1/2 hidden -translate-x-1/2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-400 backdrop-blur md:block lg:bottom-24 xl:bottom-28">
-        Mantle RWA proof layer
-      </div>
     </div>
   );
 }
