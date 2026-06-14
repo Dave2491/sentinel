@@ -740,9 +740,7 @@ function LandingPage() {
               <BrainCircuit className="size-3.5 text-mantle" />
               <span className="truncate">AI x RWA treasury execution on Mantle</span>
             </motion.div>
-            <motion.h1 variants={textReveal} transition={{ duration: 0.7, ease: "easeOut" }} className="hero-display bg-[linear-gradient(180deg,#ffffff_8%,#dce7f4_48%,#9fb0c8_100%)] bg-clip-text text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-transparent drop-shadow-[0_22px_60px_rgba(220,231,244,0.12)] sm:text-[7.25rem] lg:text-[7.25rem] xl:text-[7.9rem]">
-              Sentinel
-            </motion.h1>
+            <HeroWordmark />
             <motion.p variants={textReveal} transition={{ duration: 0.55, ease: "easeOut" }} className="mx-auto mt-7 max-w-2xl text-xl leading-8 text-slate-100 sm:mx-0 sm:text-2xl">
               AI-assisted RWA treasury compliance on Mantle Sepolia.
             </motion.p>
@@ -796,6 +794,26 @@ function LandingPage() {
       </section>
       <EcosystemAttribution />
     </>
+  );
+}
+
+function HeroWordmark() {
+  return (
+    <motion.h1
+      variants={textReveal}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className="hero-display hero-wordmark text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal sm:text-[7.25rem] lg:text-[7.25rem] xl:text-[7.9rem]"
+      aria-label="Sentinel"
+    >
+      <span aria-hidden="true">Sent</span>
+      <span className="hero-wordmark-i" aria-hidden="true">
+        <span className="hero-wordmark-dot">
+          <img src={mantleLogoUrl} alt="" />
+        </span>
+        <span>ı</span>
+      </span>
+      <span aria-hidden="true">nel</span>
+    </motion.h1>
   );
 }
 
