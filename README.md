@@ -29,7 +29,7 @@ these transactions demonstrate both sides of sentinel’s execution model: an ap
 
 > note: if the contracts are redeployed again, replace the addresses and proof transaction links above with the latest deployment output and latest successful demo transactions.
 
-## judge quickstart
+## product walkthrough
 
 sentinel demonstrates a controlled treasury decision workflow on mantle sepolia.
 
@@ -59,7 +59,7 @@ sentinel demonstrates a controlled treasury decision workflow on mantle sepolia.
 
 ### ai x rwa integration
 
-sentinel treats ai as an explanation and structured review layer for a deterministic rwa treasury workflow. the target allocation references ondo usdy on mantle mainnet and uses a non-redeemable `TestnetUSDY` mirror on mantle sepolia so judges can test the full workflow safely.
+sentinel treats ai as an explanation and structured review layer for a deterministic rwa treasury workflow. the target allocation references ondo usdy on mantle mainnet and uses a non-redeemable `TestnetUSDY` mirror on mantle sepolia so teams can test the full workflow safely.
 
 the ai/rwa flow now includes:
 
@@ -80,7 +80,7 @@ the frontend now surfaces explicit compliance controls before execution:
 - issuer and duration mandate
 - high-risk substitution block
 
-these controls are not represented as production kyc/aml infrastructure. they are intentionally modeled as visible governance checks so judges can see how sentinel would fit a permissioned rwa treasury workflow.
+these controls are not represented as production kyc/aml infrastructure. they are intentionally modeled as visible governance checks so teams can see how sentinel would fit a permissioned rwa treasury workflow.
 
 ### mantle network integration
 
@@ -88,15 +88,15 @@ sentinel uses mantle sepolia as the execution and audit layer. the deployed stra
 
 ### demo proof
 
-the recommended judge path is:
+the recommended proof path is:
 
-1. open the dashboard judge cockpit.
+1. open the treasury cockpit.
 2. review the rwa asset evidence and compliance gate.
 3. approve the t-bill allocation path.
 4. test the blocked high-risk allocation path.
 5. open the decision log and inspect policy version, execution status, confidence, signal state, tx link, and ai rationale evidence hash.
 
-judges can also use the no-wallet judge mode on the dashboard. it links directly to the approved and blocked mantle sepolia proof transactions, so the project remains reviewable even if a wallet connection is not available during judging.
+teams can also use the no-wallet proof mode on the dashboard. it links directly to the approved and blocked mantle sepolia proof transactions, so the workflow remains reviewable even if a wallet connection is not available.
 
 ## why sentinel matters
 
@@ -188,7 +188,7 @@ the current rule set checks:
 - target concentration and redemption window
 - high-risk substitution exposure cap
 
-each rule exposes the requirement, current input, result, and evidence so judges can see why a path is cleared, monitored, or blocked.
+each rule exposes the requirement, current input, result, and evidence so reviewers can see why a path is cleared, monitored, or blocked.
 
 ### ai rationale layer
 
@@ -206,7 +206,7 @@ the ai layer:
 
 sentinel records an ai rationale evidence hash with execution events.
 
-the frontend can copy or download the full audit packet json used to generate the hash. the onchain hash provides a compact verification anchor, while the exported packet lets judges recompute the hash from the recommendation, market signal, portfolio state, and compliance rule inputs.
+the frontend can copy or download the full audit packet json used to generate the hash. the onchain hash provides a compact verification anchor, while the exported packet lets teams recompute the hash from the recommendation, market signal, portfolio state, and compliance rule inputs.
 
 ### onchain agent identity
 
@@ -248,7 +248,7 @@ sentinel records treasury decisions with:
 - chain label
 - transaction hash where available
 
-this gives judges a clear governance review surface instead of a one-off dashboard action.
+this gives teams a clear governance review surface instead of a one-off dashboard action.
 
 ## technical highlights
 
@@ -335,7 +335,7 @@ the contract also includes future-ready production controls that can be enabled 
 - an `AuditEvidenceAnchored` event that records the recommendation id, rationale hash, and policy version
 - an `RwaEvidenceAnchored` event that records the recommendation id, rwa asset id, asset passport hash, compliance attestation hash, and policy version
 
-these controls are disabled by default to preserve the judge demo path, but they make the intended production boundary explicit in code and tests.
+these controls are disabled by default to preserve the public demo path, but they make the intended production boundary explicit in code and tests.
 
 ### `SentinelAgentIdentity.sol`
 

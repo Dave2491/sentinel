@@ -91,7 +91,6 @@ type DecisionAuditFilter = "all" | DecisionAuditStatus;
 
 type Decision = {
   time: string;
-  seededOffsetMinutes?: number;
   title: string;
   detail: string;
   result: string;
@@ -175,7 +174,7 @@ function App() {
   const location = useLocation();
   const { address, isConnected } = useAccount();
   const [strategyState, setStrategyState] = useState<Strategy[]>(initialStrategies);
-  const [decisionLog, setDecisionLog] = useState<Decision[]>(() => hydrateSeededDecisionTimeline(initialDecisions as Decision[]));
+  const [decisionLog, setDecisionLog] = useState<Decision[]>(initialDecisions as Decision[]);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [safeExecuted, setSafeExecuted] = useState(false);
   const [submittedHash, setSubmittedHash] = useState<Hex | undefined>();
@@ -764,7 +763,7 @@ function LandingPage() {
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1 }}
-            className="glass-panel relative mx-auto h-[220px] w-full max-w-[340px] rounded-2xl sm:h-[300px] sm:max-w-[470px] md:h-[340px] md:max-w-[520px] lg:h-[470px] lg:max-w-[560px] xl:h-[500px] xl:max-w-[600px]"
+            className="relative mx-auto h-[220px] w-full max-w-[340px] overflow-hidden sm:h-[300px] sm:max-w-[470px] md:h-[340px] md:max-w-[520px] lg:h-[470px] lg:max-w-[560px] xl:h-[500px] xl:max-w-[600px]"
           >
             <MantleVaultScene />
             <div className="pointer-events-none absolute inset-x-0 bottom-3 h-20 bg-[radial-gradient(ellipse_at_center,rgba(220,231,244,0.12),transparent_62%)] blur-xl lg:bottom-16" />
@@ -834,7 +833,7 @@ function DashboardPage({
   <section className="rounded-xl border border-mantle/20 bg-mantle/[0.055] p-4 shadow-premium backdrop-blur-xl sm:p-5">
     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mantle">Judge cockpit</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mantle">Treasury cockpit</p>
         <h2 className="mt-2 text-lg font-semibold text-white">AI x RWA workflow, policy gate, and Mantle proof in one pass</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
           Review the short-duration RWA allocation, inspect the compliance controls, then execute the allowed path or record the blocked mandate test.
@@ -849,8 +848,8 @@ function DashboardPage({
     </div>
   </section>
 
-  <JudgeEvidenceStrip />
-  <JudgeModePanel />
+  <ProofEvidenceStrip />
+  <VerificationModePanel />
   <RwaCompliancePanel complianceChecks={complianceChecks} />
 
   <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
@@ -1674,7 +1673,7 @@ function ProductGlimpse({ totalValue }: { totalValue: number }) {
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Treasury intelligence</p>
           <p className="mt-2 text-3xl font-semibold text-white">{formatCurrency(totalValue)}</p>
-          <p className="mt-2 max-w-sm text-xs leading-5 text-muted">RWA allocation, compliance gate, and audit trail compressed into one judge-ready flow.</p>
+          <p className="mt-2 max-w-sm text-xs leading-5 text-muted">RWA allocation, compliance gate, and audit trail compressed into one audit-ready flow.</p>
         </div>
         <div className="glass-chip-active w-fit rounded-full px-3 py-1 text-xs text-mantle">
           Policies active
@@ -1703,7 +1702,7 @@ function ProductGlimpse({ totalValue }: { totalValue: number }) {
   );
 }
 
-function JudgeEvidenceStrip() {
+function ProofEvidenceStrip() {
   const items = [
     {
       icon: BrainCircuit,
@@ -1751,18 +1750,18 @@ function JudgeEvidenceStrip() {
   );
 }
 
-function JudgeModePanel() {
+function VerificationModePanel() {
   return (
     <section className="rounded-xl border border-blue-300/20 bg-blue-300/[0.055] p-4 shadow-premium backdrop-blur-xl sm:p-5">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,1.08fr)] lg:items-center">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">
             <FileClock className="size-4" />
-            No-wallet judge mode
+            No-wallet proof mode
           </div>
           <h2 className="mt-2 text-lg font-semibold text-white">Review the complete proof path without connecting a wallet</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            The live controls still support wallet execution, but these proof links let judges verify the approved and blocked paths immediately.
+            The live controls still support wallet execution, while these proof links verify the approved and blocked paths immediately.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -2188,7 +2187,7 @@ function AiRecommendation({
           <div>
             <p className="font-semibold text-white">Mandate protection active</p>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              High-risk exposure is capped at 10%; the seeded block path remains available for judges to test.
+              High-risk exposure is capped at 10%; the seeded block path remains available for treasury teams to test.
             </p>
           </div>
         </div>
@@ -2375,7 +2374,7 @@ function AuditPacketPreview({
         </button>
       </div>
       <p className="mt-2 text-xs leading-5 text-slate-400">
-        The contract receives the bytes32 hash. This exported packet is the human-readable evidence judges can hash again to verify the anchor.
+        The contract receives the bytes32 hash. This exported packet is the human-readable evidence teams can hash again to verify the anchor.
       </p>
     </div>
   );
@@ -2878,19 +2877,6 @@ const tooltipStyle = {
   boxShadow: "0 18px 50px rgba(0,0,0,0.38)",
 };
 
-function hydrateSeededDecisionTimeline(decisions: Decision[]) {
-  const now = new Date();
-
-  return decisions.map((decision) => {
-    if (typeof decision.seededOffsetMinutes !== "number") return decision;
-
-    return {
-      ...decision,
-      time: formatAuditDateTime(new Date(now.getTime() - decision.seededOffsetMinutes * 60_000)),
-    };
-  });
-}
-
 function buildAuditEvidencePacket(
   verdict: "approved" | "blocked",
   recommendationId: string,
@@ -2982,6 +2968,7 @@ function formatAuditDateTime(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

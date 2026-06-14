@@ -659,7 +659,7 @@ export function evaluateRwaComplianceChecks(
       requirement: "High-risk strategy exposure must remain <= 10%",
       input: `${highRiskAfterUnsafeTest}% exposure after unsafe test`,
       evidence: "High Yield LP path exceeds high-risk exposure tolerance.",
-      detail: "Judges can test a blocked path that records the policy failure on Mantle Sepolia.",
+      detail: "Treasury teams can test a blocked path that records the policy failure on Mantle Sepolia.",
     },
   ];
 }
@@ -699,8 +699,7 @@ export const rwaComplianceChecks: RwaComplianceCheck[] = evaluateRwaComplianceCh
 
 export const decisions = [
   {
-    time: "Seeded -12m",
-    seededOffsetMinutes: 12,
+    time: "May 14, 2026, 10:12",
     title: "Proposal blocked",
     detail: "Move 16% from USDC Reserve into High Yield LP",
     result: "Blocked by policy: high-risk exposure would reach 24%",
@@ -712,8 +711,7 @@ export const decisions = [
     signalState: "Constrained target, 38% risk-adjusted score",
   },
   {
-    time: "Seeded -17m",
-    seededOffsetMinutes: 17,
+    time: "May 14, 2026, 10:07",
     title: "Recommendation generated",
     detail: "Increase Sentinel tUSDY Mirror by 4%",
     result: "Awaiting treasurer approval",
@@ -725,8 +723,7 @@ export const decisions = [
     signalState: "Healthy target, 85% policy-liquidity score",
   },
   {
-    time: "Seeded -64m",
-    seededOffsetMinutes: 64,
+    time: "May 14, 2026, 09:20",
     title: "Signal refresh completed",
     detail: "Re-scored reserve, RWA, staking, and high-yield strategies",
     result: "No mandate changes required",
@@ -738,8 +735,7 @@ export const decisions = [
     signalState: "Healthy portfolio / Conservative stance / 90% allocation efficiency",
   },
   {
-    time: "Seeded -1080m",
-    seededOffsetMinutes: 1080,
+    time: "May 13, 2026, 16:12",
     title: "Rebalance intent recorded",
     detail: "Recorded 3% shift from mETH Yield Vault to USDC Reserve",
     result: "Compliant with all active policies",
