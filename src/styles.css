@@ -107,6 +107,48 @@ a {
       0 18px 56px rgba(0, 0, 0, 0.28);
     backdrop-filter: blur(18px) saturate(132%);
   }
+
+  .ai-label-shimmer {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+    color: #a9b8cf;
+  }
+
+  .ai-label-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: -20% auto -20% -35%;
+    width: 28%;
+    transform: skewX(-18deg);
+    background: linear-gradient(90deg, transparent, rgba(220, 231, 244, 0.32), transparent);
+    animation: ai-label-scan 4.8s ease-in-out infinite;
+  }
+}
+
+@keyframes ai-label-scan {
+  0%,
+  52% {
+    transform: translateX(0) skewX(-18deg);
+    opacity: 0;
+  }
+
+  62% {
+    opacity: 0.72;
+  }
+
+  82%,
+  100% {
+    transform: translateX(520%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-label-shimmer::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 ::-webkit-scrollbar {

@@ -170,6 +170,21 @@ const statusStyles: Record<PolicyStatus, string> = {
   Blocked: "text-danger",
 };
 
+const textReveal = {
+  hidden: { opacity: 0, y: 14, filter: "blur(8px)" },
+  show: { opacity: 1, y: 0, filter: "blur(0px)" },
+};
+
+const textRevealGroup = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.11,
+      delayChildren: 0.04,
+    },
+  },
+};
+
 function App() {
   const location = useLocation();
   const { address, isConnected } = useAccount();
@@ -716,30 +731,30 @@ function LandingPage() {
         <div className="pointer-events-none absolute left-1/2 top-10 h-72 w-[min(92vw,920px)] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(70,212,168,0.12),rgba(125,167,255,0.06)_38%,transparent_70%)] blur-3xl" />
         <div className="grid min-h-[min(680px,calc(100vh-150px))] items-center gap-8 lg:grid-cols-[0.98fr_1.02fr]">
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
+            initial="hidden"
+            animate="show"
+            variants={textRevealGroup}
             className="relative z-10 max-w-3xl text-center sm:text-left"
           >
-            <div className="glass-chip mb-6 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-slate-200">
+            <motion.div variants={textReveal} transition={{ duration: 0.55, ease: "easeOut" }} className="glass-chip mb-6 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-slate-200">
               <BrainCircuit className="size-3.5 text-mantle" />
               <span className="truncate">AI x RWA treasury execution on Mantle</span>
-            </div>
-            <h1 className="hero-display bg-[linear-gradient(180deg,#ffffff_8%,#dce7f4_48%,#9fb0c8_100%)] bg-clip-text text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-transparent drop-shadow-[0_22px_60px_rgba(220,231,244,0.12)] sm:text-[7.25rem] lg:text-[7.25rem] xl:text-[7.9rem]">
+            </motion.div>
+            <motion.h1 variants={textReveal} transition={{ duration: 0.7, ease: "easeOut" }} className="hero-display bg-[linear-gradient(180deg,#ffffff_8%,#dce7f4_48%,#9fb0c8_100%)] bg-clip-text text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal text-transparent drop-shadow-[0_22px_60px_rgba(220,231,244,0.12)] sm:text-[7.25rem] lg:text-[7.25rem] xl:text-[7.9rem]">
               Sentinel
-            </h1>
-            <p className="mx-auto mt-7 max-w-2xl text-xl leading-8 text-slate-100 sm:mx-0 sm:text-2xl">
+            </motion.h1>
+            <motion.p variants={textReveal} transition={{ duration: 0.55, ease: "easeOut" }} className="mx-auto mt-7 max-w-2xl text-xl leading-8 text-slate-100 sm:mx-0 sm:text-2xl">
               AI-assisted RWA treasury compliance on Mantle Sepolia.
-            </p>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-muted sm:mx-0">
+            </motion.p>
+            <motion.p variants={textReveal} transition={{ duration: 0.55, ease: "easeOut" }} className="mx-auto mt-4 max-w-2xl text-base leading-7 text-muted sm:mx-0">
               Short-duration RWA allocations are scored, explained, checked against compliance-aware mandates, and recorded with audit evidence before capital moves.
-            </p>
-            <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:mx-0 sm:grid-cols-3">
+            </motion.p>
+            <motion.div variants={textRevealGroup} className="mx-auto mt-7 grid max-w-xl gap-3 sm:mx-0 sm:grid-cols-3">
               <MiniSignal label="RWA screen" value="Active" />
               <MiniSignal label="Audit hash" value="Onchain" emphasized />
               <MiniSignal label="Compliance" value="Gated" />
-            </div>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+            </motion.div>
+            <motion.div variants={textReveal} transition={{ duration: 0.5, ease: "easeOut" }} className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
                 to="/dashboard"
                 className="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-frost px-5 py-3 text-sm font-semibold text-ink shadow-[0_16px_45px_rgba(220,231,244,0.16)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_64px_rgba(220,231,244,0.24)] sm:w-auto"
@@ -756,7 +771,7 @@ function LandingPage() {
                 View Proof
                 <ExternalLink className="size-4" />
               </a>
-            </div>
+            </motion.div>
           </motion.div>
 
           <motion.div
@@ -1084,14 +1099,24 @@ function LogsPage({ decisions, signalEngine }: { decisions: Decision[]; signalEn
   </div>
 
   <div className="flex items-center gap-2">
-    <span
+    <motion.span
+      initial={{ opacity: 0, y: 4, filter: "blur(5px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.32, delay: 0.08, ease: "easeOut" }}
       className={`rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] ${getDecisionAuditStatusTone(
         decision
       )}`}
     >
       {getDecisionAuditStatusLabel(decision)}
-    </span>
-    <span className="text-xs text-muted">{decision.time}</span>
+    </motion.span>
+    <motion.span
+      initial={{ opacity: 0, y: 4, filter: "blur(5px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.32, delay: 0.14, ease: "easeOut" }}
+      className="text-xs text-muted"
+    >
+      {decision.time}
+    </motion.span>
   </div>
 </div>
               <p className="mt-3 text-sm text-slate-300">{decision.detail}</p>
@@ -1414,12 +1439,12 @@ function PageFrame({
       transition={{ duration: 0.28 }}
       className="mx-auto max-w-7xl px-4 py-8 sm:px-8 sm:py-10 lg:py-14"
     >
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="mb-6 sm:mb-8">
+      <motion.div initial="hidden" animate="show" variants={textRevealGroup} className="mb-6 sm:mb-8">
         <div className="flex min-w-0 flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div className="max-w-3xl">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-mantle">{eyebrow}</p>
-            <h1 className="mt-3 max-w-4xl text-[clamp(2rem,9vw,3rem)] font-semibold leading-[1.08] text-white sm:text-5xl">{title}</h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-muted">{description}</p>
+            <motion.p variants={textReveal} transition={{ duration: 0.45, ease: "easeOut" }} className="text-xs font-medium uppercase tracking-[0.18em] text-mantle">{eyebrow}</motion.p>
+            <motion.h1 variants={textReveal} transition={{ duration: 0.55, ease: "easeOut" }} className="mt-3 max-w-4xl text-[clamp(2rem,9vw,3rem)] font-semibold leading-[1.08] text-white sm:text-5xl">{title}</motion.h1>
+            <motion.p variants={textReveal} transition={{ duration: 0.5, ease: "easeOut" }} className="mt-4 max-w-2xl text-base leading-7 text-muted">{description}</motion.p>
           </div>
           {signals ? <SystemStrip signals={signals} /> : null}
         </div>
@@ -2114,7 +2139,7 @@ function AiRecommendation({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted">
                 <BrainCircuit className="size-3.5 text-blue-200" />
-                AI Governance Commentary
+                <span className="ai-label-shimmer">AI Governance Commentary</span>
               </div>
               <span className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[11px] text-slate-400">
                 Explanation layer
@@ -2786,10 +2811,10 @@ function DemoStep({ number, label }: { number: string; label: string }) {
 
 function MiniSignal({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
   return (
-    <div className={`rounded-lg p-3 ${emphasized ? "glass-chip-active" : "glass-chip"}`}>
+    <motion.div variants={textReveal} transition={{ duration: 0.48, ease: "easeOut" }} className={`rounded-lg p-3 ${emphasized ? "glass-chip-active" : "glass-chip"}`}>
       <p className="text-[11px] uppercase tracking-[0.14em] text-muted">{label}</p>
       <p className={`mt-1 text-sm font-semibold ${emphasized ? "text-mantle" : "text-white"}`}>{value}</p>
-    </div>
+    </motion.div>
   );
 }
 
