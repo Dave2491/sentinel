@@ -33,26 +33,29 @@ body {
   display: inline-flex;
   align-items: baseline;
   justify-content: center;
+  filter: drop-shadow(0 22px 60px rgba(220, 231, 244, 0.12));
+}
+
+.hero-wordmark-text,
+.hero-wordmark-i {
   background: linear-gradient(180deg, #ffffff 8%, #dce7f4 48%, #9fb0c8 100%);
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 22px 60px rgba(220, 231, 244, 0.12));
   -webkit-background-clip: text;
 }
 
 .hero-wordmark-i {
   position: relative;
   display: inline-block;
-  color: transparent;
 }
 
 .hero-wordmark-dot {
   position: absolute;
   left: 50%;
-  top: -0.03em;
-  width: 0.18em;
-  height: 0.18em;
-  transform: translate(-50%, -56%);
+  top: 0.12em;
+  width: 0.16em;
+  height: 0.16em;
+  transform: translate(-50%, -50%);
   filter:
     brightness(1.65)
     grayscale(1)
@@ -61,7 +64,16 @@ body {
   opacity: 0.92;
 }
 
+.hero-wordmark-dot::before {
+  position: absolute;
+  inset: -0.05em;
+  content: "";
+  border-radius: 999px;
+  background: #080b10;
+}
+
 .hero-wordmark-dot img {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;

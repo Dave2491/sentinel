@@ -805,14 +805,14 @@ function HeroWordmark() {
       className="hero-display hero-wordmark text-[clamp(4.5rem,20vw,7rem)] font-semibold leading-[0.92] tracking-normal sm:text-[7.25rem] lg:text-[7.25rem] xl:text-[7.9rem]"
       aria-label="Sentinel"
     >
-      <span aria-hidden="true">Sent</span>
+      <span className="hero-wordmark-text" aria-hidden="true">Sent</span>
       <span className="hero-wordmark-i" aria-hidden="true">
+        i
         <span className="hero-wordmark-dot">
           <img src={mantleLogoUrl} alt="" />
         </span>
-        <span>ı</span>
       </span>
-      <span aria-hidden="true">nel</span>
+      <span className="hero-wordmark-text" aria-hidden="true">nel</span>
     </motion.h1>
   );
 }
